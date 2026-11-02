@@ -10,7 +10,7 @@
 - 회원 추가·이름/선호 포지션 등록은 admin 이 앱 안에서 직접 (3단계 선수 화면)
 - 기기: 스마트폰 세로 우선, 가끔 태블릿 가로. PC는 고려하지 않음
 - 사용 장면: 경기장 벤치에서 한 손으로 빠르게 입력 / 경기 후 집에서 정리 / 전술 회의 때 태블릿으로 전술판
-- 모임 구조: **매주 일요일, 모임당 8~10쿼터(각 10~12분), 쿼터마다 출전 선수와 팀(A/B)이 바뀐다.**
+- 모임 구조: **보통 한 달치 일정을 미리 예약(요일 무관, 주 1회 안팎), 모임당 8~10쿼터(각 10~12분), 쿼터마다 출전 선수와 팀(A/B)이 바뀐다.**
   → 모든 개인 기록(출전·득점·어시·평점)은 모임(match)이 아니라 **쿼터(game) 단위**로 저장한다.
 
 ## 2. 핵심 기능 (우선순위 순)
@@ -76,20 +76,22 @@ futsal-manager/
    │  ├─ (app)/              # 하단 탭이 있는 화면들 (layout.tsx = AppShell)
    │  │  ├─ page.tsx         # 홈: 다음 모임(참석/불참), 최근 결과, 이달 랭킹, 평점 알림
    │  │  ├─ whoami/          # "내 이름 선택" (쿠키)
-   │  │  ├─ matches/         # 경기 탭 (목록 → [id] 상세: 출석/쿼터/기록/보고서)
+   │  │  ├─ matches/         # 경기 탭: 목록(예정/지난, 달력 다중 날짜 등록) → [id]?tab=attendance|games|events → games/[gameId] (스코어보드·타이머·편성·득점)
    │  │  ├─ players/         # 선수 탭: 목록(+등록 바텀시트) → [id] 상세(시즌 요약·폼 차트·쿼터별 기록)
    │  │  ├─ stats/           # 통계 탭
    │  │  └─ tactics/         # 전술판 탭
    │  ├─ login/              # 대표 로그인 (탭 없음)
    │  ├─ auth/callback, auth/signout
-   │  └─ actions/            # 서버 액션 (attendance.ts 참석 응답, identity.ts 이름 선택, players.ts 선수 등록/수정)
+   │  └─ actions/            # 서버 액션: attendance(참석 응답·출석 일괄 저장), identity, players, matches(다중 등록·수정·상태·삭제), games(쿼터·편성), events(득점 → 스코어 재계산)
    ├─ middleware.ts          # Supabase 세션 쿠키 갱신 (로그인 강제 없음)
    ├─ components/
    │  ├─ ui/                 # shadcn/ui 컴포넌트 (button, card, input, label, badge, skeleton, sonner, drawer, switch, native-select)
    │  ├─ layout/             # AppShell, BottomNav, PageHeader, Placeholder
    │  ├─ auth/               # LoginForm, SignOutButton
    │  ├─ home/               # NextMatchCard(+RsvpButtons), RecentResults, MonthLeaders, RatingReminder
-   │  └─ players/            # PlayerList, PlayerFormDrawer(등록/수정), FormChart(Recharts)
+   │  ├─ players/            # PlayerList, PlayerFormDrawer(등록/수정), FormChart(Recharts)
+   │  └─ matches/            # MatchCard, MatchFormDrawer(+MultiDatePicker), MatchTabs, MatchActions, AttendanceEditor/View,
+   │                         #   GamesTab, QuarterCountBar, NewGameButton, LineupEditor, Scoreboard(타이머), GoalDrawer, EventList, EventsTab, GameSettings
    ├─ lib/
    │  ├─ utils.ts            # cn()
    │  ├─ nav.ts              # 하단 탭 정의 (순서·라벨·아이콘)
@@ -97,7 +99,7 @@ futsal-manager/
    │  ├─ auth.ts             # getViewer(): user/role/isAdmin/canScore/player
    │  ├─ date.ts             # YYYY-MM-DD (요일), 한국 시간 today, 월 범위
    │  ├─ identity.ts         # 이름 선택 쿠키 상수
-   │  ├─ queries/            # 화면별 서버 조회 함수 (home.ts …)
+   │  ├─ queries/            # 화면별 서버 조회 함수 (home, players, matches, games)
    │  ├─ supabase/           # client.ts(브라우저), server.ts(서버) — Database 제네릭 적용
    │  ├─ formations.ts       # (4단계) 포메이션 프리셋 상수
    │  └─ report/narrative.ts # (4-2단계) 보고서 요약 문장 생성
@@ -119,7 +121,7 @@ futsal-manager/
 ## 7. 작업 단계 (진행 상황)
 - [x] 1단계: 프로젝트 셋업, 하단 탭 뼈대, PWA 기본, Supabase 클라이언트 준비
 - [x] 2단계: 데이터 모델 — `supabase/migrations/0001_init.sql`, `src/types/database.ts`, `supabase/seed.sql`, `pnpm db:check`
-- [ ] 3단계: 화면 — [x] 로그인+홈 / [x] 선수(목록·등록·수정·상세) / [ ] 경기 / [ ] 통계 / [ ] 평점 / [ ] 설정
+- [ ] 3단계: 화면 — [x] 로그인+홈 / [x] 선수(목록·등록·수정·상세) / [x] 경기(일정 다중 등록·출석·쿼터 편성·득점·경기 중 모드) / [ ] 통계 / [ ] 평점 / [ ] 설정
 - [ ] 4단계: 전술 현황판 (react-konva)
 - [ ] 4-2단계: 경기 피드백 보고서 + 월/분기/연 결산 리포트 + 카카오톡 공유(Web Share API)
 - [ ] 5단계: 검증 스크립트·Playwright E2E·Vercel 배포·백업 워크플로

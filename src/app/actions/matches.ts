@@ -1,0 +1,112 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { getViewer } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import type { MatchFormat, MatchStatus } from "@/types/database";
+
+export type MatchInput = {
+  match_date: string; // YYYY-MM-DD
+  start_time: string | null; // HH:MM
+  venue: string | null;
+  format: MatchFormat;
+  notes: string | null;
+};
+
+export type ActionResult = { ok: true; id?: string; count?: number } | { error: string };
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^\d{2}:\d{2}$/;
+
+function validate(input: Omit<MatchInput, "match_date">): string | null {
+  if (input.start_time && !TIME_RE.test(input.start_time)) return "시간 형식이 올바르지 않습니다.";
+  if (input.format !== "5v5" && input.format !== "6v6") return "형식은 5v5 또는 6v6 이어야 합니다.";
+  if (input.venue && input.venue.length > 60) return "장소는 60자 이내로 입력해 주세요.";
+  return null;
+}
+
+function friendly(message: string): string {
+  if (message.includes("row-level security")) return "모임 생성·수정은 대표 계정(lfc1·lfc2·lfc3) 로그인 후 가능합니다.";
+  return message;
+}
+
+function revalidateMatch(id?: string) {
+  revalidatePath("/");
+  revalidatePath("/matches");
+  if (id) revalidatePath(`/matches/${id}`);
+}
+
+/** 여러 날짜를 한 번에 등록 (한 달치 예약용). scorer 이상 */
+export async function createMatches(dates: string[], input: Omit<MatchInput, "match_date">): Promise<ActionResult> {
+  const viewer = await getViewer();
+  if (!viewer.canScore) return { error: "모임 등록은 대표 계정 로그인 후 가능합니다." };
+  const unique = [...new Set(dates)].filter((d) => DATE_RE.test(d)).sort();
+  if (unique.length === 0) return { error: "날짜를 하나 이상 선택해 주세요." };
+  if (unique.length > 31) return { error: "한 번에 31개까지만 등록할 수 있습니다." };
+  const invalid = validate(input);
+  if (invalid) return { error: invalid };
+
+  const supabase = await createClient();
+  const rows = unique.map((match_date) => ({
+    match_date,
+    start_time: input.start_time ? `${input.start_time}:00` : null,
+    venue: input.venue?.trim() || null,
+    format: input.format,
+    notes: input.notes?.trim() || null,
+    status: "scheduled" as MatchStatus,
+    created_by: viewer.user?.id ?? null,
+  }));
+  const { data, error } = await supabase.from("matches").insert(rows).select("id");
+  if (error) return { error: friendly(error.message) };
+  revalidateMatch();
+  return { ok: true, count: data.length, id: data.length === 1 ? data[0].id : undefined };
+}
+
+/** 모임 정보 수정. scorer 이상 */
+export async function updateMatch(id: string, input: MatchInput): Promise<ActionResult> {
+  const viewer = await getViewer();
+  if (!viewer.canScore) return { error: "모임 수정은 대표 계정 로그인 후 가능합니다." };
+  if (!DATE_RE.test(input.match_date)) return { error: "날짜 형식이 올바르지 않습니다." };
+  const invalid = validate(input);
+  if (invalid) return { error: invalid };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("matches")
+    .update({
+      match_date: input.match_date,
+      start_time: input.start_time ? `${input.start_time}:00` : null,
+      venue: input.venue?.trim() || null,
+      format: input.format,
+      notes: input.notes?.trim() || null,
+    })
+    .eq("id", id);
+  if (error) return { error: friendly(error.message) };
+  revalidateMatch(id);
+  return { ok: true, id };
+}
+
+/** 상태 변경: 예정 ↔ 완료 ↔ 취소. scorer 이상 */
+export async function setMatchStatus(id: string, status: MatchStatus): Promise<ActionResult> {
+  const viewer = await getViewer();
+  if (!viewer.canScore) return { error: "상태 변경은 대표 계정 로그인 후 가능합니다." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("matches").update({ status }).eq("id", id);
+  if (error) return { error: friendly(error.message) };
+  revalidateMatch(id);
+  return { ok: true, id };
+}
+
+/** 쿼터가 하나도 없는 모임만 삭제 가능 (잘못 만든 예정 일정 정리용). scorer 이상 */
+export async function deleteMatch(id: string): Promise<ActionResult> {
+  const viewer = await getViewer();
+  if (!viewer.canScore) return { error: "삭제는 대표 계정 로그인 후 가능합니다." };
+  const supabase = await createClient();
+  const { count } = await supabase.from("games").select("id", { count: "exact", head: true }).eq("match_id", id);
+  if (count && count > 0) return { error: "쿼터 기록이 있는 모임은 삭제할 수 없습니다. 대신 '취소' 상태로 바꿔 주세요." };
+  const { error } = await supabase.from("matches").delete().eq("id", id);
+  if (error) return { error: friendly(error.message) };
+  revalidateMatch();
+  redirect("/matches");
+}
