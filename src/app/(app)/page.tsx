@@ -28,12 +28,9 @@ export default async function HomePage() {
     );
   }
 
-  const viewer = await getViewer();
-  const settings = await getTeamSettings();
-  const [next, recent, leaders, pending] = await Promise.all([
+  const [viewer, settings, recent, leaders] = await Promise.all([getViewer(), getTeamSettings(), getRecentResults(3), getMonthLeaders()]);
+  const [next, pending] = await Promise.all([
     getNextMatch(viewer.player?.id ?? null),
-    getRecentResults(3),
-    getMonthLeaders(),
     getPendingRatings(viewer.player?.id ?? null, settings),
   ]);
 

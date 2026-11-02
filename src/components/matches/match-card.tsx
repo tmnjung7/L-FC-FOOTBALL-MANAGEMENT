@@ -28,7 +28,7 @@ export function MatchCard({ m }: { m: MatchSummaryRow }) {
             <span className="flex items-center gap-1 truncate"><MapPin className="size-3" />{m.venue || "장소 미정"}</span>
             <span className="flex items-center gap-1">
               <Users className="size-3" />
-              {isUpcoming ? `참석 ${m.attendee_count}명` : `${m.attendee_count}명`}
+              {isUpcoming ? `투표 참석 ${m.rsvp_yes_count}명` : `${m.attendee_count}명`}
             </span>
             {m.status === "done" && (
               <span>

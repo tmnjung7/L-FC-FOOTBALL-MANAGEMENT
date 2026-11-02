@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
-export type RsvpStatus = "present" | "excused";
+export type RsvpStatus = "yes" | "no";
 
 /**
- * 예정 모임에 참석/불참 응답. 본인 선수 행만 쓸 수 있다 (RLS 0002 정책).
+ * 예정 모임에 사전 투표(참석/불참). 홈에서 고른 "내 이름"으로 기록 (RLS 0004 정책).
+ * 당일 출석(status)은 건드리지 않는다.
  */
-export async function rsvp(matchId: string, status: RsvpStatus): Promise<{ ok: true } | { error: string }> {
+export async function rsvp(matchId: string, answer: RsvpStatus): Promise<{ ok: true } | { error: string }> {
   const viewer = await getViewer();
   if (!viewer.user) return { error: "로그인이 필요합니다." };
   if (!viewer.player) return { error: "먼저 홈에서 내 이름을 골라 주세요." };
@@ -18,11 +19,11 @@ export async function rsvp(matchId: string, status: RsvpStatus): Promise<{ ok: t
   const { error } = await supabase
     .from("attendance")
     .upsert(
-      { match_id: matchId, player_id: viewer.player.id, status },
+      { match_id: matchId, player_id: viewer.player.id, rsvp: answer },
       { onConflict: "match_id,player_id" },
     );
   if (error) {
-    return { error: error.message.includes("row-level security") ? "이 모임은 더 이상 응답을 바꿀 수 없습니다." : error.message };
+    return { error: error.message.includes("row-level security") ? "이 모임은 더 이상 투표를 바꿀 수 없습니다 (당일 출석이 확정됨)." : error.message };
   }
   revalidatePath("/");
   return { ok: true };
@@ -30,27 +31,29 @@ export async function rsvp(matchId: string, status: RsvpStatus): Promise<{ ok: t
 
 export type AttendanceRowInput = {
   player_id: string;
-  status: "present" | "late" | "absent" | "excused" | null; // null = 기록 없음(행 삭제)
+  rsvp: "yes" | "no" | null; // 사전 투표
+  status: "present" | "late" | "absent" | "excused" | null; // 당일 확정
   late_minutes: number | null;
   note?: string | null;
 };
 
-/** 출석 탭 "한 번에 저장". scorer 이상. null 상태는 행 삭제 */
+/** 출석 탭 "한 번에 저장". scorer 이상. 투표·당일 둘 다 비어 있으면 행 삭제 */
 export async function saveAttendance(matchId: string, rows: AttendanceRowInput[]): Promise<{ ok: true } | { error: string }> {
   const viewer = await getViewer();
   if (!viewer.canScore) return { error: "출석 저장은 대표 계정 로그인 후 가능합니다." };
   const supabase = await createClient();
 
   const toUpsert = rows
-    .filter((r) => r.status !== null)
+    .filter((r) => r.status !== null || r.rsvp !== null)
     .map((r) => ({
       match_id: matchId,
       player_id: r.player_id,
-      status: r.status!,
+      rsvp: r.rsvp,
+      status: r.status,
       late_minutes: r.status === "late" ? (r.late_minutes ?? null) : null,
       note: r.note?.trim() || null,
     }));
-  const toDelete = rows.filter((r) => r.status === null).map((r) => r.player_id);
+  const toDelete = rows.filter((r) => r.status === null && r.rsvp === null).map((r) => r.player_id);
 
   if (toUpsert.length > 0) {
     const { error } = await supabase.from("attendance").upsert(toUpsert, { onConflict: "match_id,player_id" });

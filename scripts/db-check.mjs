@@ -112,12 +112,15 @@ try { await db.exec(`insert into ratings (match_id, player_id, rater_id, score) 
 catch (e) { console.log("self-rating blocked ✔", e.message.split("\n")[0]); }
 try { await db.exec(`insert into ratings (match_id, player_id, rater_id, score) values ('${match[0].id}','${other[0].id}','${me[0].id}', 7.3)`); console.log("BAD: 0.3 step allowed"); failed = true; }
 catch (e) { console.log("non-0.5 step blocked ✔", e.message.split("\n")[0]); }
-await db.exec(`insert into attendance (match_id, player_id, status) values ('${sched[0].id}','${me[0].id}','present') on conflict (match_id, player_id) do update set status = excluded.status`);
-console.log("anon RSVP on scheduled match OK ✔");
+await db.exec(`insert into attendance (match_id, player_id, rsvp) values ('${sched[0].id}','${me[0].id}','yes') on conflict (match_id, player_id) do update set rsvp = excluded.rsvp`);
+console.log("anon RSVP(yes) on scheduled match OK ✔");
+try { await db.exec(`insert into attendance (match_id, player_id, rsvp, status) values ('${sched[0].id}','${other[0].id}','yes','present')`); console.log("BAD: anon set day status"); failed = true; }
+catch (e) { console.log("anon day-status blocked ✔", e.message.split("\n")[0]); }
+console.log("rsvp counts:", (await q(`select rsvp_yes_count, rsvp_no_count from v_match_summary where match_id='${sched[0].id}'`))[0]);
+console.log("no_show column:", (await q(`select sum(no_show_count)::int as n from v_player_season_stats`))[0]);
 try { await db.exec(`insert into attendance (match_id, player_id, status) values ('${match[0].id}','${other[0].id}','present') on conflict (match_id, player_id) do update set status = excluded.status`); console.log("BAD: anon wrote attendance on done match"); failed = true; }
 catch (e) { console.log("anon attendance on done match blocked ✔", e.message.split("\n")[0]); }
-try { await db.exec(`insert into attendance (match_id, player_id, status) values ('${sched[0].id}','${other[0].id}','late')`); console.log("BAD: member set 'late'"); failed = true; }
-catch (e) { console.log("anon 'late' status blocked ✔", e.message.split("\n")[0]); }
+
 await db.exec(`reset role;`);
 await db.close();
 console.log(failed ? "\n❌ 검증 실패" : "\n✅ 스키마·시드·집계·RLS 검증 통과");

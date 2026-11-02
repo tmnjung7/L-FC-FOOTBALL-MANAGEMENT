@@ -65,11 +65,11 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
         </div>
         {match.notes && <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm whitespace-pre-wrap">{match.notes}</p>}
 
-        <MatchTabs matchId={id} active={active} counts={{ attendance: attendance.filter((a) => a.status === "present" || a.status === "late").length, games: gameCount, events: goalCount }} />
+        <MatchTabs matchId={id} active={active} counts={{ attendance: match.status === "scheduled" && !attendance.some((a) => a.status) ? attendance.filter((a) => a.rsvp === "yes").length : attendance.filter((a) => a.status === "present" || a.status === "late").length, games: gameCount, events: goalCount }} />
 
         {active === "attendance" &&
           (viewer.canScore ? (
-            <AttendanceEditor matchId={id} players={players} attendance={attendance} lateThreshold={settings?.late_threshold_min ?? 10} />
+            <AttendanceEditor matchId={id} players={players} attendance={attendance} lateThreshold={settings?.late_threshold_min ?? 10} isUpcoming={match.status === "scheduled"} />
           ) : (
             <AttendanceView match={match} players={players} attendance={attendance} myPlayerId={viewer.player?.id ?? null} />
           ))}

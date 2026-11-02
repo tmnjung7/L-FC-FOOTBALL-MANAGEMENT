@@ -11,8 +11,7 @@ export async function getMatchList(): Promise<{ upcoming: MatchSummaryRow[]; pas
   const upcoming = all.filter((m) => m.status === "scheduled" && m.match_date >= today).sort((a, b) => a.match_date.localeCompare(b.match_date));
   const past = all.filter((m) => !(m.status === "scheduled" && m.match_date >= today));
 
-  // 예정 모임의 "참석" 응답 수 (v_match_summary.attendee_count 는 present+late 라 동일하게 사용 가능)
-  const rsvp = new Map(upcoming.map((m) => [m.match_id, m.attendee_count]));
+  const rsvp = new Map(upcoming.map((m) => [m.match_id, m.rsvp_yes_count]));
   return { upcoming, past, rsvp };
 }
 

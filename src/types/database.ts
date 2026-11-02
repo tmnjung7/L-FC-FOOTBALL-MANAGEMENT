@@ -101,11 +101,16 @@ export type RatingRow = {
   updated_at: string;
 };
 
+export type RsvpAnswer = "yes" | "no";
+
 export type AttendanceRow = {
   id: string;
   match_id: string;
   player_id: string;
-  status: AttendanceStatus;
+  /** 당일 확정 (출석/지각/결석/사전통보). 투표만 한 상태면 null */
+  status: AttendanceStatus | null;
+  /** 사전 투표 결과 (카톡 투표). 참석 yes / 불참 no */
+  rsvp: RsvpAnswer | null;
   late_minutes: number | null;
   note: string | null;
 };
@@ -177,6 +182,7 @@ export type PlayerSeasonStatsRow = {
   losses: number;
   positions_played: Partial<Record<PositionType, number>>; // 실제 뛴 포지션별 쿼터 수
   main_position: PositionType | null; // 가장 많이 뛴 포지션
+  no_show_count: number; // 투표 참석인데 당일 무단 결석
 };
 
 /** v_match_summary 한 행 */
@@ -195,6 +201,8 @@ export type MatchSummaryRow = {
   draws: number;
   team_b_wins: number;
   quarters_by_player: { player_id: string; name: string; quarters: number }[];
+  rsvp_yes_count: number;
+  rsvp_no_count: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -276,7 +284,7 @@ export type Database = {
       };
       attendance: {
         Row: AttendanceRow;
-        Insert: WithDefaults<AttendanceRow, "id" | "late_minutes" | "note">;
+        Insert: WithDefaults<AttendanceRow, "id" | "status" | "rsvp" | "late_minutes" | "note">;
         Update: Partial<AttendanceRow>;
         Relationships: [
           Rel<"attendance_match_id_fkey", "match_id", "matches">,

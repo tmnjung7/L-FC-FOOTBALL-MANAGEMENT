@@ -41,7 +41,7 @@ export function NextMatchCard({ next, hasPlayer }: Props) {
           <dd>{match.venue || "장소 미정"}</dd>
           <dt className="flex items-center"><Users className="size-4" /></dt>
           <dd>
-            참석 <span className="text-foreground font-semibold">{going}명</span>
+            투표 참석 <span className="text-foreground font-semibold">{going}명</span>
             {notGoing > 0 && <> · 불참 {notGoing}명</>}
           </dd>
         </dl>

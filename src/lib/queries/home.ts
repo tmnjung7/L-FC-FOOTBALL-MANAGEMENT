@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { monthRange, todayISO, daysBetween } from "@/lib/date";
-import type { AttendanceStatus, MatchRow, MatchSummaryRow, PlayerSeasonStatsRow, TeamSettingsRow } from "@/types/database";
+import type { MatchRow, MatchSummaryRow, PlayerSeasonStatsRow, RsvpAnswer, TeamSettingsRow } from "@/types/database";
 
 // ---------------------------------------------------------------------------
 // 홈 화면 데이터 조회 (서버 전용)
@@ -14,9 +14,9 @@ export async function getTeamSettings(): Promise<TeamSettingsRow | null> {
 
 export type NextMatch = {
   match: MatchRow;
-  going: number; // 참석 예정
-  notGoing: number; // 불참 통보
-  mine: AttendanceStatus | null; // 내 응답
+  going: number; // 투표 참석
+  notGoing: number; // 투표 불참
+  mine: RsvpAnswer | null; // 내 투표
 };
 
 /** 오늘 이후 가장 가까운 예정 모임 + 참석 응답 현황 */
@@ -35,15 +35,15 @@ export async function getNextMatch(playerId: string | null): Promise<NextMatch |
 
   const { data: att } = await supabase
     .from("attendance")
-    .select("player_id, status")
+    .select("player_id, rsvp")
     .eq("match_id", match.id);
   const rows = att ?? [];
 
   return {
     match,
-    going: rows.filter((a) => a.status === "present").length,
-    notGoing: rows.filter((a) => a.status === "excused").length,
-    mine: playerId ? (rows.find((a) => a.player_id === playerId)?.status ?? null) : null,
+    going: rows.filter((a) => a.rsvp === "yes").length,
+    notGoing: rows.filter((a) => a.rsvp === "no").length,
+    mine: playerId ? (rows.find((a) => a.player_id === playerId)?.rsvp ?? null) : null,
   };
 }
 

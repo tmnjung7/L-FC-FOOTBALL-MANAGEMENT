@@ -19,13 +19,14 @@ export async function getMatchGames(matchId: string): Promise<MatchGamesData> {
   const supabase = await createClient();
   const [{ data: games }, { data: att }, { data: players }, { data: tactics }] = await Promise.all([
     supabase.from("games").select("*").eq("match_id", matchId).order("game_number"),
-    supabase.from("attendance").select("player_id, status").eq("match_id", matchId).in("status", ["present", "late"]),
+    supabase.from("attendance").select("player_id, status, rsvp").eq("match_id", matchId),
     supabase.from("players").select("*").order("name"),
     supabase.from("tactics").select("id, name, format").order("is_favorite", { ascending: false }).order("name"),
   ]);
   const gameIds = (games ?? []).map((g) => g.id);
   const nameOf = new Map((players ?? []).map((p) => [p.id, p.name]));
-  const attIds = new Set((att ?? []).map((a) => a.player_id));
+  // 당일 출석/지각이 확정된 사람, 아직 확정 전이면 투표 참석자
+  const attIds = new Set((att ?? []).filter((a) => a.status === "present" || a.status === "late" || (a.status === null && a.rsvp === "yes")).map((a) => a.player_id));
   const attendees = (players ?? []).filter((p) => attIds.has(p.id));
 
   let lineups: GamePlayerRow[] = [];

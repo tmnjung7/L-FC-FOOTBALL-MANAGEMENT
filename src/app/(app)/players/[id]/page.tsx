@@ -94,7 +94,7 @@ export default async function PlayerDetailPage({ params }: Props) {
                   <Stat label="도움" value={stats.assists} />
                   <Stat label="평점" value={stats.avg_rating != null ? Number(stats.avg_rating).toFixed(2) : "-"} sub={stats.rating_count ? `${stats.rating_count}건` : "평가 없음"} />
                   <Stat label="지각" value={stats.late_count} />
-                  <Stat label="결석" value={stats.absent_count} sub={stats.excused_count ? `사전통보 ${stats.excused_count}` : undefined} />
+                  <Stat label="결석" value={stats.absent_count} sub={[stats.excused_count ? `사전통보 ${stats.excused_count}` : null, stats.no_show_count ? `노쇼 ${stats.no_show_count}` : null].filter(Boolean).join(" · ") || undefined} />
                   <Stat label="주 포지션" value={stats.main_position ? POSITION_LABEL[stats.main_position].split("(")[0] : "-"} />
                 </div>
                 {positions.length > 0 && (

@@ -17,7 +17,8 @@
 1. 선수 관리: 이름, 포지션 선호(GK/FIXO/ALA/PIVO/ANY), 활동 여부
 2. 경기(모임) 기록: 날짜·장소·참석자·지각자, 쿼터별 팀 편성, 쿼터별 스코어
 3. 개인 기록: 쿼터별 득점·어시스트·출전, 모임별 평점(1~10, 0.5 단위), 누적 집계
-4. 출석·지각 관리: 출석률, 지각 횟수, 결석 횟수 (사전통보 결석은 출석률 분모에서 제외)
+4. 출석·지각 관리 2단계: **사전 투표**(`attendance.rsvp` yes/no, 경기 3~4일 전 카톡 투표 결과) → **당일 확정**(`attendance.status` 출석/지각/결석/사전통보).
+   출석률·지각·결석·노쇼(투표 참석인데 결석) 집계는 status 기준. 사전통보 결석은 출석률 분모에서 제외
 5. 통계: 득점왕·어시스트왕·평균 평점·출석왕·지각왕 랭킹, 표, 차트
 6. 전술 현황판: 풋살 코트(40m×20m) 위 드래그 마커, 포메이션 프리셋, 화살표·영역·메모, 저장
 7. 경기 피드백 보고서: 평점·한 줄 피드백·MVP 투표 → 보고서 자동 생성 → 이미지로 카카오톡 공유
@@ -45,7 +46,7 @@
 - 한국어 UI. 날짜는 `YYYY-MM-DD (요일)` 형식
 - 입력 폼은 **바텀시트**(화면 아래서 올라오는 창). 중앙 모달 팝업 금지
 - 숫자 입력은 키패드형(`inputMode="numeric"`), 선수 선택은 검색 가능한 칩(chip)
-- 모든 화면에 로딩·빈 상태·에러 상태 포함
+- 모든 화면에 로딩·빈 상태·에러 상태 포함. 각 라우트에 `loading.tsx`(스켈레톤). 서버 조회는 `Promise.all` 로 병렬, 순차 await 금지
 - 권한 없는 사용자에게는 입력 버튼을 **숨김**(비활성화가 아니라 렌더링 안 함). 단, 진짜 권한 통제는 RLS
   - `viewer.isAdmin` → 선수·전술·보고서·설정 버튼 / `viewer.canScore` → 모임·쿼터·득점·출석 버튼 / `viewer.player` → 참석 응답·평점
 - 로그인: 로그인 강제 없음(미들웨어는 세션 갱신만). 대표만 /login 에서 아이디(lfc1)+비밀번호. 아이디 뒤에 `@lfc.team` 자동 부착
@@ -59,6 +60,7 @@ futsal-manager/
 ├─ README.md                 # 실행·배포 안내 (한국어)
 ├─ .env.local.example        # 환경변수 예시 (.env.local 은 git 제외)
 ├─ next.config.ts            # Serwist(PWA) 래핑
+├─ vercel.json               # 서버 함수 리전 서울(icn1) — 화면 전환 속도
 ├─ components.json           # shadcn/ui 설정
 ├─ public/icons/icon.svg     # 앱 아이콘 (자체 제작 축구공 SVG)
 ├─ supabase/
@@ -66,6 +68,7 @@ futsal-manager/
 │  ├─ migrations/0001_init.sql
 │  ├─ migrations/0002_open_access.sql  # anon 조회, 역할 3단계(is_scorer), set_user_role
 │  ├─ migrations/0003_auto_roles.sql   # lfc1/2→admin, lfc3→scorer 자동 부여 트리거
+│  ├─ migrations/0004_rsvp.sql         # 투표(rsvp)와 당일 출석(status) 분리, 노쇼 집계, 투표 집계 뷰 컬럼
 │  ├─ seed.sql               # 가상 이름 15명, 모임 8회 × 9쿼터 (truncate 포함 — 운영 후 재실행 금지)
 │  └─ maintenance/cleanup_seed.sql  # 가상 데이터만 삭제 (실제 선수·대표가 만든 모임은 유지)
 ├─ scripts/

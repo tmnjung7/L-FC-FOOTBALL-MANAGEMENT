@@ -12,6 +12,10 @@ export async function updateSession(request: NextRequest) {
   // 환경변수가 없으면(아직 설정 전) 그냥 통과시켜 안내 화면이 뜨게 한다
   if (!isSupabaseConfigured) return response;
 
+  // 로그인 쿠키가 전혀 없는 일반 팀원은 세션 갱신이 필요 없다 → Supabase 왕복 생략 (속도)
+  const hasAuthCookie = request.cookies.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+  if (!hasAuthCookie) return response;
+
   const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
     cookies: {
       getAll() {

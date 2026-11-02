@@ -6,9 +6,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { rsvp, type RsvpStatus } from "@/app/actions/attendance";
 import { cn } from "@/lib/utils";
-import type { AttendanceStatus } from "@/types/database";
+import type { RsvpAnswer } from "@/types/database";
 
-type Props = { matchId: string; mine: AttendanceStatus | null };
+type Props = { matchId: string; mine: RsvpAnswer | null };
 
 /** 다음 모임 카드의 참석 / 불참 버튼 */
 export function RsvpButtons({ matchId, mine }: Props) {
@@ -18,12 +18,12 @@ export function RsvpButtons({ matchId, mine }: Props) {
     startTransition(async () => {
       const result = await rsvp(matchId, status);
       if ("error" in result) toast.error(result.error);
-      else toast.success(status === "present" ? "참석으로 응답했습니다" : "불참으로 응답했습니다");
+      else toast.success(status === "yes" ? "참석으로 투표했습니다" : "불참으로 투표했습니다");
     });
   }
 
-  const isGoing = mine === "present";
-  const isNotGoing = mine === "excused";
+  const isGoing = mine === "yes";
+  const isNotGoing = mine === "no";
 
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -32,7 +32,7 @@ export function RsvpButtons({ matchId, mine }: Props) {
         variant={isGoing ? "default" : "outline"}
         className={cn(isGoing && "ring-primary/30 ring-2")}
         disabled={pending}
-        onClick={() => choose("present")}
+        onClick={() => choose("yes")}
         aria-pressed={isGoing}
       >
         <Check /> 참석
@@ -42,7 +42,7 @@ export function RsvpButtons({ matchId, mine }: Props) {
         variant={isNotGoing ? "secondary" : "outline"}
         className={cn(isNotGoing && "ring-2 ring-neutral-300")}
         disabled={pending}
-        onClick={() => choose("excused")}
+        onClick={() => choose("no")}
         aria-pressed={isNotGoing}
       >
         <X /> 불참
