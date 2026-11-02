@@ -39,10 +39,15 @@ export function LoginForm({ next }: { next: string }) {
 
     if (error) {
       setLoading(false);
+      const m = error.message;
       setMessage(
-        error.message.includes("Invalid login credentials")
+        m.includes("Invalid login credentials")
           ? "아이디 또는 비밀번호가 맞지 않습니다."
-          : `로그인에 실패했습니다. (${error.message})`,
+          : m.includes("Email not confirmed")
+            ? "계정이 아직 확인되지 않았습니다. Supabase 에서 사용자를 만들 때 'Auto Confirm User' 를 체크하거나, Users 목록에서 confirm 해 주세요."
+            : /Load failed|Failed to fetch|NetworkError|fetch/i.test(m)
+              ? "Supabase 서버에 연결하지 못했습니다. 아래 '연결 진단'을 확인해 주세요."
+              : `로그인에 실패했습니다. (${m})`,
       );
       return;
     }
