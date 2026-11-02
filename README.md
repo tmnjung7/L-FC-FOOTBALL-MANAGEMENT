@@ -6,11 +6,12 @@
 - 스택: Next.js 15 · TypeScript · Tailwind v4 · shadcn/ui · Supabase · Zustand · react-konva · Recharts · Serwist(PWA) · Vercel
 - 프로젝트 규칙과 진행 상황: [CLAUDE.md](./CLAUDE.md)
 
-## 현재 상태 (1단계 완료)
+## 현재 상태 (2단계 완료)
 - 하단 탭 5개(홈 / 경기 / 선수 / 통계 / 전술판) 뼈대. 각 탭은 "준비 중" 플레이스홀더
 - 모바일 우선 레이아웃(360px~), 터치 타깃 44px, iOS safe-area 대응
 - PWA manifest + 서비스워커(프로덕션 빌드에서만 활성)
-- Supabase 클라이언트 헬퍼(아직 연결 안 함 → 2단계에서 스키마와 함께)
+- 데이터 모델 완료: `supabase/migrations/0001_init.sql`(테이블 12개·집계 뷰·RLS), `supabase/seed.sql`(가상 15명 더미), `src/types/database.ts`
+- 적용 순서는 [supabase/README.md](./supabase/README.md) 참고. 올리기 전 `pnpm db:check` 로 로컬 검증 가능
 
 ## 1. 내 컴퓨터에서 실행하기
 
@@ -89,7 +90,7 @@ pnpm exec tsc --noEmit   # 타입 검사
 ```
 
 ## 5. 다음 단계
-- 2단계: 데이터 모델(Supabase 스키마·타입·시드 데이터)
+- ~~2단계: 데이터 모델~~ (완료)
 - 3단계: 화면 구현
 - 4단계: 전술 현황판
 - 4-2단계: 경기 보고서 + 카카오톡 공유

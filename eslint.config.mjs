@@ -13,6 +13,9 @@ const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     ignores: [
+      "public/sw.js",
+      "public/sw.js.map",
+      "public/swe-worker-*.js",
       "node_modules/**",
       ".next/**",
       "out/**",
