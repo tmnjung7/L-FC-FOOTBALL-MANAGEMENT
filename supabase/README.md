@@ -5,7 +5,10 @@
 | 파일 | 내용 |
 |---|---|
 | `migrations/0001_init.sql` | 테이블 12개, ENUM 8개, 집계 함수·뷰 2개, RLS(행 단위 권한) 정책, 인덱스 |
+| `migrations/0002_open_access.sql` | 오픈형 접근(로그인 없이 조회·참석응답·평점) + 역할 3단계(admin / scorer / 팀원) + `set_user_role` |
 | `seed.sql` | 가상 이름 선수 15명, 일요일 모임 8회 × 9쿼터, 득점·평점·출석·피드백·전술 더미 데이터 |
+
+마이그레이션은 **번호 순서대로 한 번씩만** 실행합니다. (0001 을 이미 실행했다면 0002 만 추가 실행)
 
 > 올리기 전에 내 컴퓨터에서 먼저 검증할 수 있습니다: `pnpm db:check`
 > (설치 없이 PostgreSQL을 메모리에 띄워 두 파일을 실행하고, 집계·권한이 맞는지 확인합니다)
@@ -28,27 +31,38 @@
 ⚠️ `seed.sql` 맨 위에는 **기존 데이터를 전부 지우는 `truncate` 문**이 있습니다.
 실제 팀 기록을 입력하기 시작한 뒤에는 절대 다시 실행하지 마세요. (운영 전환 시 한 번만 실행해 더미를 비우고 끝)
 
-## 3. 관리자(admin) 지정 (3단계 로그인 붙일 때 필요)
+## 3. 대표 계정 3개 만들기 (lfc1 · lfc2 · lfc3)
 
-앱에서 한 번 로그인(매직 링크)해 `auth.users` 에 내 계정이 생긴 뒤, SQL Editor 에서:
+앱은 **로그인 없이** 누구나 조회·참석 응답·평점 입력이 되고, **기록 입력만** 대표 계정으로 로그인해서 합니다.
+
+| 아이디 | 역할 | 할 수 있는 것 |
+|---|---|---|
+| lfc1, lfc2 | admin (관리자) | 선수 등록·수정, 모임·쿼터·득점·출석, 전술, 보고서, 팀 설정 — 전부 |
+| lfc3 | scorer (기록원) | 경기 중 입력: 모임 생성, 쿼터·편성, 득점, 출석 확정 |
+
+Supabase 계정은 이메일 형식이 필요하므로 아이디 뒤에 `@lfc.team` 을 붙여 만듭니다. 앱 로그인 화면에서는 `lfc1` 만 치면 자동으로 붙습니다.
+
+1. Supabase 대시보드 → 왼쪽 메뉴 **Authentication** → **Users** → 오른쪽 위 **Add user** → **Create new user**
+2. Email: `lfc1@lfc.team`, Password: 원하는 비밀번호, **Auto Confirm User 체크** → Create user
+3. 같은 방법으로 `lfc2@lfc.team`, `lfc3@lfc.team` 생성
+4. SQL Editor → New query 에서 역할 부여:
 
 ```sql
-update auth.users
-set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
-where email = '내이메일@example.com';
+select public.set_user_role('lfc1@lfc.team', 'admin');
+select public.set_user_role('lfc2@lfc.team', 'admin');
+select public.set_user_role('lfc3@lfc.team', 'scorer');
 ```
 
-적용 후 앱에서 **로그아웃 → 다시 로그인**해야 권한이 반영됩니다. (권한 정보가 로그인 토큰에 들어가기 때문)
+5. 앱에서 아이디 `lfc1` + 비밀번호로 로그인 → 홈 상단에 "관리자" 표시가 뜨면 성공
+   (역할을 바꾼 뒤에는 앱에서 **로그아웃 → 다시 로그인**해야 반영됩니다)
 
-## 4. 내 계정과 선수 연결 (평점·피드백 입력에 필요)
+비밀번호를 바꾸려면 Authentication → Users → 해당 계정 → ⋯ → Reset password 또는 Send password recovery 를 쓰면 됩니다.
 
-```sql
-update public.players
-set user_id = (select id from auth.users where email = '내이메일@example.com')
-where name = '내 선수 이름';
-```
+## 4. 팀원은 어떻게 쓰나
 
-3단계에서 설정 화면에 "초대 링크 + 선수 연결" 기능이 들어가면 SQL 없이 할 수 있게 됩니다.
+- 링크를 열면 바로 보입니다. 로그인 없음.
+- 홈에서 **"내 이름 선택"** 을 한 번 누르면 참석 응답·평점이 그 이름으로 기록됩니다 (휴대폰에 1년간 기억).
+- 다른 사람 휴대폰을 빌려 쓸 땐 홈 상단 이름을 눌러 바꿀 수 있습니다.
 
 ## 5. 구조 설명 — 왜 이렇게 나눴나
 
@@ -84,11 +98,12 @@ where name = '내 선수 이름';
 - `v_match_summary` — 모임별 참석 인원·쿼터 수·총 득점·A팀 승무패·선수별 출전 쿼터 수
 - 집계 항목: 참석 모임 수, 출전/휴식 쿼터, 골, 어시, 자책골, 평균 평점(평가 수), 출석률, 지각/결석 수, 승/무/패, **포지션별 출전 쿼터 수와 주 포지션**
 
-### 권한(RLS)
-- 로그인한 사람은 전부 읽기 가능
-- 기록 입력(선수·모임·쿼터·득점·출석·전술·보고서·설정)은 admin 만
-- 평점·피드백은 "내 계정에 연결된 선수" 본인만 쓰기, 자기 자신 평가는 DB 제약으로 차단
-- admin 판단은 `auth.users.app_metadata.role = 'admin'` (3절 참고)
+### 권한(RLS) — 0002 기준
+- 조회: 로그인 없이(anon) 전부 읽기 가능
+- 참석 응답(예정 모임의 참석/불참만)·평점·피드백: 로그인 없이, 앱에서 고른 이름으로 쓰기. 자기 자신 평가는 DB 제약으로 차단
+- 모임·쿼터·편성·득점·출석 확정: scorer 이상 (lfc3, lfc1, lfc2)
+- 선수·전술·보고서·결산·팀 설정: admin 만 (lfc1, lfc2)
+- 역할은 `auth.users.app_metadata.role` ('admin' / 'scorer'), `set_user_role()` 로 부여 (3절)
 
 ## 6. 스키마를 바꿀 때
 - 새 파일 `migrations/0002_xxx.sql` 을 추가하고 SQL Editor 에서 실행 (0001 은 다시 실행하지 않음)

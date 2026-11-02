@@ -67,33 +67,52 @@ const checks = await q(`
 console.table(checks);
 if (checks.some((c) => Number(c.bad) > 0)) { console.error("정합성 불일치 있음"); failed = true; }
 
-console.log("== RLS 동작 확인 (authenticated 역할로 전환)");
-await db.exec(`set role authenticated;`);
-console.log("member read players:", (await q(`select count(*)::int as n from players`))[0]);
-try { await db.exec(`insert into players (name) values ('침입자')`); console.log("BAD: member insert allowed"); failed = true; }
-catch (e) { console.log("member insert blocked ✔", e.message.split("\n")[0]); }
+console.log("== RLS 동작 확인 (anon = 로그인 없는 팀원, authenticated+admin = 대표)");
+await db.exec(`set role anon;`);
+console.log("anon read players:", (await q(`select count(*)::int as n from players`))[0]);
+console.log("anon read stats view:", (await q(`select count(*)::int as n from v_player_season_stats`))[0]);
+try { await db.exec(`insert into players (name) values ('침입자')`); console.log("BAD: anon player insert allowed"); failed = true; }
+catch (e) { console.log("anon player insert blocked ✔", e.message.split("\n")[0]); }
+try { await db.exec(`insert into matches (match_date) values ('2026-12-25')`); console.log("BAD: anon match insert allowed"); failed = true; }
+catch (e) { console.log("anon match insert blocked ✔", e.message.split("\n")[0]); }
+await db.exec(`reset role; set role authenticated;`);
 await db.exec(`select set_config('request.jwt.claims', '{"app_metadata":{"role":"admin"}}', false);`);
 console.log("is_admin():", (await q(`select is_admin()`))[0]);
 await db.exec(`insert into players (name) values ('테스트선수')`);
 console.log("admin insert OK ✔");
-// 본인 평점: auth.users 생성 → 선수와 연결 → sub 클레임으로 로그인한 척
+// scorer: 경기 기록은 가능, 선수 등록은 불가
 await db.exec(`reset role;`);
-await db.exec(`insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111', 'me@example.com');
-  update players set user_id = '11111111-1111-1111-1111-111111111111' where name = '김민준';`);
-const [me, other, target, match] = await Promise.all([
+await db.exec(`insert into auth.users (id, email) values ('33333333-3333-3333-3333-333333333333', 'lfc3@lfc.team');`);
+console.log("set_user_role:", (await q(`select public.set_user_role('lfc3@lfc.team', 'scorer') as r`))[0].r);
+console.log("app_metadata:", (await q(`select raw_app_meta_data::text as m from auth.users where email='lfc3@lfc.team'`))[0].m);
+await db.exec(`set role authenticated; select set_config('request.jwt.claims', '{"sub":"33333333-3333-3333-3333-333333333333","app_metadata":{"role":"scorer"}}', false);`);
+console.log("is_scorer():", (await q(`select is_scorer()`))[0], "is_admin():", (await q(`select is_admin()`))[0]);
+await db.exec(`insert into matches (match_date, status) values ('2026-12-25', 'scheduled')`);
+console.log("scorer match insert OK ✔");
+try { await db.exec(`insert into players (name) values ('기록원이만든선수')`); console.log("BAD: scorer player insert allowed"); failed = true; }
+catch (e) { console.log("scorer player insert blocked ✔", e.message.split("\n")[0]); }
+try { await q(`select public.set_user_role('lfc3@lfc.team', 'admin')`); console.log("BAD: set_user_role callable by app user"); failed = true; }
+catch (e) { console.log("set_user_role blocked for app users ✔", e.message.split("\n")[0]); }
+// 로그인 없는 팀원(anon)의 평점/참석응답 권한
+await db.exec(`reset role;`);
+const [me, other, target, match, sched] = await Promise.all([
   q(`select id from players where name='김민준'`), q(`select id from players where name='이서준'`),
-  q(`select id from players where name='박도윤'`), q(`select id from matches where status='done' order by match_date desc limit 1`)]);
-await db.exec(`set role authenticated; select set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","app_metadata":{}}', false); select set_config('request.jwt.claim.sub','11111111-1111-1111-1111-111111111111', false);`);
-console.log("current_player_id:", (await q(`select current_player_id()`))[0]);
+  q(`select id from players where name='박도윤'`), q(`select id from matches where status='done' order by match_date desc limit 1`),
+  q(`select id from matches where status='scheduled' limit 1`)]);
+await db.exec(`set role anon; select set_config('request.jwt.claims', '', false);`);
 await db.exec(`delete from ratings where match_id='${match[0].id}' and rater_id='${me[0].id}' and player_id='${target[0].id}'`);
 await db.exec(`insert into ratings (match_id, player_id, rater_id, score) values ('${match[0].id}','${target[0].id}','${me[0].id}', 8.5)`);
-console.log("self rating insert OK ✔");
-try { await db.exec(`insert into ratings (match_id, player_id, rater_id, score) values ('${match[0].id}','${target[0].id}','${other[0].id}', 8.5)`); console.log("BAD: rating as someone else allowed"); failed = true; }
-catch (e) { console.log("rating as someone else blocked ✔", e.message.split("\n")[0]); }
+console.log("anon rating insert OK ✔");
 try { await db.exec(`insert into ratings (match_id, player_id, rater_id, score) values ('${match[0].id}','${me[0].id}','${me[0].id}', 9)`); console.log("BAD: self-rating allowed"); failed = true; }
 catch (e) { console.log("self-rating blocked ✔", e.message.split("\n")[0]); }
 try { await db.exec(`insert into ratings (match_id, player_id, rater_id, score) values ('${match[0].id}','${other[0].id}','${me[0].id}', 7.3)`); console.log("BAD: 0.3 step allowed"); failed = true; }
 catch (e) { console.log("non-0.5 step blocked ✔", e.message.split("\n")[0]); }
+await db.exec(`insert into attendance (match_id, player_id, status) values ('${sched[0].id}','${me[0].id}','present') on conflict (match_id, player_id) do update set status = excluded.status`);
+console.log("anon RSVP on scheduled match OK ✔");
+try { await db.exec(`insert into attendance (match_id, player_id, status) values ('${match[0].id}','${other[0].id}','present') on conflict (match_id, player_id) do update set status = excluded.status`); console.log("BAD: anon wrote attendance on done match"); failed = true; }
+catch (e) { console.log("anon attendance on done match blocked ✔", e.message.split("\n")[0]); }
+try { await db.exec(`insert into attendance (match_id, player_id, status) values ('${sched[0].id}','${other[0].id}','late')`); console.log("BAD: member set 'late'"); failed = true; }
+catch (e) { console.log("anon 'late' status blocked ✔", e.message.split("\n")[0]); }
 await db.exec(`reset role;`);
 await db.close();
 console.log(failed ? "\n❌ 검증 실패" : "\n✅ 스키마·시드·집계·RLS 검증 통과");

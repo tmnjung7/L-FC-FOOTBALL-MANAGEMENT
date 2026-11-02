@@ -5,7 +5,8 @@
 
 ## 1. 만드는 것
 친구들과 하는 풋살 모임(주로 6대6, 가끔 5대5)의 **팀 기록 관리 + 전술 현황판** PWA(홈 화면에 설치되는 웹앱).
-- 사용자: 팀원 15명(늘어도 20명 미만). admin 1명(기록 입력), 나머지는 member(조회 + 자기 평점·피드백만 입력)
+- 사용자: 팀원 15명(늘어도 20명 미만). **오픈형**: 링크만 있으면 로그인 없이 조회·참석 응답·평점·피드백
+- 대표 계정 3개: lfc1·lfc2 = admin(전부), lfc3 = scorer(경기 중 기록: 모임·쿼터·편성·득점·출석). 아이디+비밀번호 로그인
 - 회원 추가·이름/선호 포지션 등록은 admin 이 앱 안에서 직접 (3단계 선수 화면)
 - 기기: 스마트폰 세로 우선, 가끔 태블릿 가로. PC는 고려하지 않음
 - 사용 장면: 경기장 벤치에서 한 손으로 빠르게 입력 / 경기 후 집에서 정리 / 전술 회의 때 태블릿으로 전술판
@@ -43,8 +44,10 @@
 - 입력 폼은 **바텀시트**(화면 아래서 올라오는 창). 중앙 모달 팝업 금지
 - 숫자 입력은 키패드형(`inputMode="numeric"`), 선수 선택은 검색 가능한 칩(chip)
 - 모든 화면에 로딩·빈 상태·에러 상태 포함
-- admin이 아니면 입력 버튼을 **숨김**(비활성화가 아니라 렌더링 안 함). 단, 진짜 권한 통제는 RLS
-- 로그인: Supabase Auth 이메일 매직 링크로 시작. 권한은 `auth.users.app_metadata.role = 'admin'`
+- 권한 없는 사용자에게는 입력 버튼을 **숨김**(비활성화가 아니라 렌더링 안 함). 단, 진짜 권한 통제는 RLS
+  - `viewer.isAdmin` → 선수·전술·보고서·설정 버튼 / `viewer.canScore` → 모임·쿼터·득점·출석 버튼 / `viewer.player` → 참석 응답·평점
+- 로그인: 로그인 강제 없음(미들웨어는 세션 갱신만). 대표만 /login 에서 아이디(lfc1)+비밀번호. 아이디 뒤에 `@lfc.team` 자동 부착
+- "나"의 식별: 로그인 계정에 연결된 선수 → 없으면 /whoami 에서 고른 선수(쿠키 `fm_player_id`, 1년)
 - 전술판 코트 영역은 `touch-action: none` (스크롤과 드래그 충돌 방지)
 
 ## 5. 폴더 구조
@@ -59,6 +62,7 @@ futsal-manager/
 ├─ supabase/
 │  ├─ README.md              # SQL Editor 적용 순서, admin 지정, 테이블 설명 (한국어)
 │  ├─ migrations/0001_init.sql
+│  ├─ migrations/0002_open_access.sql  # anon 조회, 역할 3단계(is_scorer), set_user_role
 │  └─ seed.sql               # 가상 이름 15명, 모임 8회 × 9쿼터 (truncate 포함 — 운영 후 재실행 금지)
 ├─ scripts/
 │  ├─ db-check.mjs           # pnpm db:check — PGlite 로 마이그레이션+시드+집계+RLS 검증
@@ -68,18 +72,30 @@ futsal-manager/
    │  ├─ layout.tsx          # 루트 레이아웃: lang=ko, viewport, PWA 메타, AppShell
    │  ├─ manifest.ts         # PWA manifest (/manifest.webmanifest)
    │  ├─ sw.ts               # 서비스워커 (Serwist)
-   │  ├─ page.tsx            # 홈 탭
-   │  ├─ matches/            # 경기 탭 (목록 → [id] 상세: 출석/쿼터/기록/보고서)
-   │  ├─ players/            # 선수 탭
-   │  ├─ stats/              # 통계 탭
-   │  └─ tactics/            # 전술판 탭
+   │  ├─ (app)/              # 하단 탭이 있는 화면들 (layout.tsx = AppShell)
+   │  │  ├─ page.tsx         # 홈: 다음 모임(참석/불참), 최근 결과, 이달 랭킹, 평점 알림
+   │  │  ├─ whoami/          # "내 이름 선택" (쿠키)
+   │  │  ├─ matches/         # 경기 탭 (목록 → [id] 상세: 출석/쿼터/기록/보고서)
+   │  │  ├─ players/         # 선수 탭
+   │  │  ├─ stats/           # 통계 탭
+   │  │  └─ tactics/         # 전술판 탭
+   │  ├─ login/              # 대표 로그인 (탭 없음)
+   │  ├─ auth/callback, auth/signout
+   │  └─ actions/            # 서버 액션 (attendance.ts: 참석 응답, identity.ts: 이름 선택)
+   ├─ middleware.ts          # Supabase 세션 쿠키 갱신 (로그인 강제 없음)
    ├─ components/
-   │  ├─ ui/                 # shadcn/ui 컴포넌트 (button, card, …)
-   │  └─ layout/             # AppShell, BottomNav, PageHeader, Placeholder
+   │  ├─ ui/                 # shadcn/ui 컴포넌트 (button, card, input, label, badge, skeleton, sonner)
+   │  ├─ layout/             # AppShell, BottomNav, PageHeader, Placeholder
+   │  ├─ auth/               # LoginForm, SignOutButton
+   │  └─ home/               # NextMatchCard(+RsvpButtons), RecentResults, MonthLeaders, RatingReminder
    ├─ lib/
    │  ├─ utils.ts            # cn()
    │  ├─ nav.ts              # 하단 탭 정의 (순서·라벨·아이콘)
    │  ├─ env.ts              # 환경변수 접근
+   │  ├─ auth.ts             # getViewer(): user/role/isAdmin/canScore/player
+   │  ├─ date.ts             # YYYY-MM-DD (요일), 한국 시간 today, 월 범위
+   │  ├─ identity.ts         # 이름 선택 쿠키 상수
+   │  ├─ queries/            # 화면별 서버 조회 함수 (home.ts …)
    │  ├─ supabase/           # client.ts(브라우저), server.ts(서버) — Database 제네릭 적용
    │  ├─ formations.ts       # (4단계) 포메이션 프리셋 상수
    │  └─ report/narrative.ts # (4-2단계) 보고서 요약 문장 생성
@@ -101,7 +117,7 @@ futsal-manager/
 ## 7. 작업 단계 (진행 상황)
 - [x] 1단계: 프로젝트 셋업, 하단 탭 뼈대, PWA 기본, Supabase 클라이언트 준비
 - [x] 2단계: 데이터 모델 — `supabase/migrations/0001_init.sql`, `src/types/database.ts`, `supabase/seed.sql`, `pnpm db:check`
-- [ ] 3단계: 화면 (홈 → 경기 → 선수 → 통계 → 평점 → 설정)
+- [ ] 3단계: 화면 — [x] 로그인+홈 / [ ] 경기 / [ ] 선수 / [ ] 통계 / [ ] 평점 / [ ] 설정
 - [ ] 4단계: 전술 현황판 (react-konva)
 - [ ] 4-2단계: 경기 피드백 보고서 + 월/분기/연 결산 리포트 + 카카오톡 공유(Web Share API)
 - [ ] 5단계: 검증 스크립트·Playwright E2E·Vercel 배포·백업 워크플로

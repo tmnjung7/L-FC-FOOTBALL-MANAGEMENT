@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { AppShell } from "@/components/layout/app-shell";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const APP_NAME = "풋살 매니저";
@@ -41,7 +41,8 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <body>
-        <AppShell>{children}</AppShell>
+        {children}
+        <Toaster />
       </body>
     </html>
   );

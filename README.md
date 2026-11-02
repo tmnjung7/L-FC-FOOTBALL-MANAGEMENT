@@ -6,8 +6,9 @@
 - 스택: Next.js 15 · TypeScript · Tailwind v4 · shadcn/ui · Supabase · Zustand · react-konva · Recharts · Serwist(PWA) · Vercel
 - 프로젝트 규칙과 진행 상황: [CLAUDE.md](./CLAUDE.md)
 
-## 현재 상태 (2단계 완료)
-- 하단 탭 5개(홈 / 경기 / 선수 / 통계 / 전술판) 뼈대. 각 탭은 "준비 중" 플레이스홀더
+## 현재 상태 (3단계 진행 중: 로그인 + 홈 완료)
+- 하단 탭 5개(홈 / 경기 / 선수 / 통계 / 전술판). 홈 완성, 나머지는 "준비 중" 플레이스홀더
+- 오픈형: 로그인 없이 조회·참석 응답·평점. 대표 계정(lfc1·lfc2 관리자, lfc3 기록원)만 기록 입력 — 계정 생성은 [supabase/README.md](./supabase/README.md) 3절
 - 모바일 우선 레이아웃(360px~), 터치 타깃 44px, iOS safe-area 대응
 - PWA manifest + 서비스워커(프로덕션 빌드에서만 활성)
 - 데이터 모델 완료: `supabase/migrations/0001_init.sql`(테이블 12개·집계 뷰·RLS), `supabase/seed.sql`(가상 15명 더미), `src/types/database.ts`
