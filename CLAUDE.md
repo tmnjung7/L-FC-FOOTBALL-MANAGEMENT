@@ -34,7 +34,7 @@
 | 스타일 | Tailwind CSS v4 + shadcn/ui | shadcn은 CLI 대신 `src/components/ui`에 수동 추가 (`components.json` 참고) |
 | 데이터 | Supabase (PostgreSQL + Auth + Realtime) | 무료 플랜 범위. 접근 제어는 RLS로 서버에서 강제 |
 | 상태관리 | Zustand | 화면 간 공유 상태만. 서버 데이터는 Supabase 쿼리로 |
-| 전술판 | react-konva (Konva.js) | 좌표는 0~1 비율로 저장, 픽셀 변환은 렌더링 때만 |
+| 전술판 | react-konva **19.0.x** (React 19.1 호환. 19.2+ 는 React 19.2/19.3 필요) | 좌표는 0~1 비율로 저장, 픽셀 변환은 렌더링 때만 |
 | 차트 | Recharts | |
 | PWA | Serwist (`@serwist/next`) | `src/app/sw.ts`, 개발 모드에서는 비활성 |
 | 배포 | Vercel 무료 | 환경변수 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
@@ -85,7 +85,7 @@ futsal-manager/
    │  │  ├─ matches/         # 경기 탭: 목록(예정/지난, 달력 다중 날짜 등록) → [id]?tab=attendance|games|events → games/[gameId] (스코어보드·타이머·편성·득점)
    │  │  ├─ players/         # 선수 탭: 목록(+등록 바텀시트) → [id] 상세(시즌 요약·폼 차트·쿼터별 기록)
    │  │  ├─ stats/           # 통계 탭
-   │  │  └─ tactics/         # 전술판 탭
+   │  │  └─ tactics/         # 전술판 탭: 자유 보드 (TacticsBoard → BoardCanvas(react-konva, ssr:false) + BoardToolbar)
    │  ├─ login/              # 대표 로그인 (탭 없음)
    │  ├─ auth/callback, auth/signout
    │  └─ actions/            # 서버 액션: attendance(참석 응답·출석 일괄 저장), identity, players, matches(다중 등록·수정·상태·삭제), games(쿼터·편성), events(득점 → 스코어 재계산)
@@ -96,8 +96,9 @@ futsal-manager/
    │  ├─ auth/               # LoginForm, SignOutButton
    │  ├─ home/               # NextMatchCard(+RsvpButtons), RecentResults, MonthLeaders, RatingReminder
    │  ├─ players/            # PlayerList, PlayerFormDrawer(등록/수정), FormChart(Recharts)
-   │  └─ matches/            # MatchCard, MatchFormDrawer(+MultiDatePicker), MatchTabs, MatchActions, AttendanceEditor/View,
-   │                         #   GamesTab, QuarterCountBar, NewGameButton, LineupEditor, Scoreboard(타이머), GoalDrawer, EventList, EventsTab, GameSettings
+   │  ├─ matches/            # MatchCard, MatchFormDrawer(+MultiDatePicker), MatchTabs, MatchActions, AttendanceEditor/View,
+   │  │                      #   GamesTab, QuarterCountBar, NewGameButton, LineupEditor, Scoreboard(타이머), GoalDrawer, EventList, EventsTab, GameSettings
+   │  └─ tactics/            # TacticsBoard, BoardCanvas(코트·마커·화살표·영역·메모, 세로는 Group -90° 회전), BoardToolbar(도구·프리셋·선수·저장·공유), TacticThumbnail(SVG)
    ├─ lib/
    │  ├─ utils.ts            # cn()
    │  ├─ nav.ts              # 하단 탭 정의 (순서·라벨·아이콘)
@@ -107,9 +108,10 @@ futsal-manager/
    │  ├─ identity.ts         # 이름 선택 쿠키 상수
    │  ├─ queries/            # 화면별 서버 조회 함수 (home, players, matches, games)
    │  ├─ supabase/           # client.ts(브라우저), server.ts(서버) — Database 제네릭 적용
-   │  ├─ formations.ts       # (4단계) 포메이션 프리셋 상수
+   │  ├─ formations.ts       # 포메이션 프리셋 상수 + 선호 포지션 자동 배정 (프리셋 추가는 여기만)
+   │  ├─ tactics/board-types.ts # board_json 타입, 0~1 좌표 ↔ 픽셀, 격자 스냅, parseBoard
    │  └─ report/narrative.ts # (4-2단계) 보고서 요약 문장 생성
-   ├─ store/                 # (3단계~) Zustand 스토어
+   ├─ store/board-store.ts   # Zustand: 보드 상태·되돌리기(20)·도구·격자/스냅, localStorage(fm:board) 자동 보관
    └─ types/database.ts     # DB 타입 (스키마와 1:1, 수정 시 같이 변경) + 한국어 라벨 상수
 ```
 
@@ -128,7 +130,7 @@ futsal-manager/
 - [x] 1단계: 프로젝트 셋업, 하단 탭 뼈대, PWA 기본, Supabase 클라이언트 준비
 - [x] 2단계: 데이터 모델 — `supabase/migrations/0001_init.sql`, `src/types/database.ts`, `supabase/seed.sql`, `pnpm db:check`
 - [ ] 3단계: 화면 — [x] 로그인+홈 / [x] 선수(목록·등록·수정·상세) / [x] 경기(일정 다중 등록·출석·쿼터 편성·득점·경기 중 모드) / [ ] 통계 / [ ] 평점 / [ ] 설정
-- [ ] 4단계: 전술 현황판 (react-konva)
+- [x] 4단계: 전술 현황판 — 자유 보드(휴대폰 자동 보관), 격자·스냅, 마커 드래그, 화살표·영역·메모, 되돌리기, 포메이션 프리셋(선수 자동 배정), 저장/불러오기(admin), PNG 공유. 프레임(1→2→3)은 구조만(frames[])
 - [ ] 4-2단계: 경기 피드백 보고서 + 월/분기/연 결산 리포트 + 카카오톡 공유(Web Share API)
 - [ ] 5단계: 검증 스크립트·Playwright E2E·Vercel 배포·백업 워크플로
 
