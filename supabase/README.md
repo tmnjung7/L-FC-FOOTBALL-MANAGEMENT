@@ -6,6 +6,7 @@
 |---|---|
 | `migrations/0001_init.sql` | 테이블 12개, ENUM 8개, 집계 함수·뷰 2개, RLS(행 단위 권한) 정책, 인덱스 |
 | `migrations/0002_open_access.sql` | 오픈형 접근(로그인 없이 조회·참석응답·평점) + 역할 3단계(admin / scorer / 팀원) + `set_user_role` |
+| `migrations/0003_auto_roles.sql` | lfc1·lfc2·lfc3 계정을 만들기만 하면 역할 자동 부여 (트리거) |
 | `seed.sql` | 가상 이름 선수 15명, 일요일 모임 8회 × 9쿼터, 득점·평점·출석·피드백·전술 더미 데이터 |
 
 마이그레이션은 **번호 순서대로 한 번씩만** 실행합니다. (0001 을 이미 실행했다면 0002 만 추가 실행)
@@ -45,16 +46,10 @@ Supabase 계정은 이메일 형식이 필요하므로 아이디 뒤에 `@lfc.te
 1. Supabase 대시보드 → 왼쪽 메뉴 **Authentication** → **Users** → 오른쪽 위 **Add user** → **Create new user**
 2. Email: `lfc1@lfc.team`, Password: 원하는 비밀번호, **Auto Confirm User 체크** → Create user
 3. 같은 방법으로 `lfc2@lfc.team`, `lfc3@lfc.team` 생성
-4. SQL Editor → New query 에서 역할 부여:
-
-```sql
-select public.set_user_role('lfc1@lfc.team', 'admin');
-select public.set_user_role('lfc2@lfc.team', 'admin');
-select public.set_user_role('lfc3@lfc.team', 'scorer');
-```
-
-5. 앱에서 아이디 `lfc1` + 비밀번호로 로그인 → 홈 상단에 "관리자" 표시가 뜨면 성공
-   (역할을 바꾼 뒤에는 앱에서 **로그아웃 → 다시 로그인**해야 반영됩니다)
+4. `migrations/0003_auto_roles.sql` 을 SQL Editor 에서 한 번 실행하면 위 세 계정에 역할이 자동으로 붙습니다.
+   (계정을 나중에 만들어도 자동 적용. 다른 이메일에 역할을 주고 싶으면 `select public.set_user_role('이메일', 'admin');`)
+5. 앱에서 아이디 `lfc1` + 비밀번호로 로그인 → 홈 상단 이름 옆에 "관리자" 표시가 뜨면 성공
+   "권한 없음" 으로 뜨면: 0003 실행 여부 확인 → 앱에서 **로그아웃 → 다시 로그인** (권한은 로그인할 때 토큰에 담깁니다)
 
 비밀번호를 바꾸려면 Authentication → Users → 해당 계정 → ⋯ → Reset password 또는 Send password recovery 를 쓰면 됩니다.
 

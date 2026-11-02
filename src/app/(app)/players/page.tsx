@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PlayerList } from "@/components/players/player-list";
 import { PlayerFormDrawer } from "@/components/players/player-form-drawer";
 import { SetupNotice } from "@/components/home/setup-notice";
+import { NoRoleNotice } from "@/components/auth/no-role-notice";
 import { getViewer } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getPlayersWithStats } from "@/lib/queries/players";
@@ -41,10 +42,11 @@ export default async function PlayersPage() {
           ) : undefined
         }
       />
-      <div className="py-4">
+      <div className="flex flex-col gap-4 py-4">
+        {viewer.user && !viewer.isAdmin && <NoRoleNotice email={viewer.user.email ?? ""} />}
         <PlayerList players={players} stats={stats} />
-        {!viewer.isAdmin && (
-          <p className="text-muted-foreground mt-4 text-center text-xs">선수 등록·수정은 관리자(lfc1, lfc2) 로그인 후 가능합니다.</p>
+        {!viewer.user && (
+          <p className="text-muted-foreground text-center text-xs">선수 등록·수정은 관리자(lfc1, lfc2) 로그인 후 가능합니다.</p>
         )}
       </div>
     </>

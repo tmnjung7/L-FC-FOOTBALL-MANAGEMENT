@@ -6,6 +6,7 @@ import { MonthLeaders } from "@/components/home/month-leaders";
 import { RatingReminder } from "@/components/home/rating-reminder";
 import { SetupNotice } from "@/components/home/setup-notice";
 import { PickNameCard } from "@/components/home/pick-name-card";
+import { NoRoleNotice } from "@/components/auth/no-role-notice";
 import Link from "next/link";
 import { KeyRound } from "lucide-react";
 import { getViewer } from "@/lib/auth";
@@ -49,8 +50,10 @@ export default async function HomePage() {
               title="내 이름 변경"
             >
               {viewer.player ? viewer.player.name : "이름 선택"}
-              {viewer.role && (
-                <span className="text-primary ml-1 text-xs">{viewer.role === "admin" ? "관리자" : "기록원"}</span>
+              {viewer.user && (
+                <span className={viewer.role ? "text-primary ml-1 text-xs" : "text-destructive ml-1 text-xs"}>
+                  {viewer.role === "admin" ? "관리자" : viewer.role === "scorer" ? "기록원" : "권한 없음"}
+                </span>
               )}
             </Link>
             {viewer.user ? (
@@ -64,6 +67,7 @@ export default async function HomePage() {
         }
       />
       <div className="flex flex-col gap-4 py-4">
+        {viewer.user && !viewer.role && <NoRoleNotice email={viewer.user.email ?? ""} />}
         {!viewer.player && <PickNameCard />}
         <RatingReminder pending={pending} />
         <NextMatchCard next={next} hasPlayer={!!viewer.player} />

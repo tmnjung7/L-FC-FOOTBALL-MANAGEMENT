@@ -63,6 +63,7 @@ futsal-manager/
 │  ├─ README.md              # SQL Editor 적용 순서, admin 지정, 테이블 설명 (한국어)
 │  ├─ migrations/0001_init.sql
 │  ├─ migrations/0002_open_access.sql  # anon 조회, 역할 3단계(is_scorer), set_user_role
+│  ├─ migrations/0003_auto_roles.sql   # lfc1/2→admin, lfc3→scorer 자동 부여 트리거
 │  └─ seed.sql               # 가상 이름 15명, 모임 8회 × 9쿼터 (truncate 포함 — 운영 후 재실행 금지)
 ├─ scripts/
 │  ├─ db-check.mjs           # pnpm db:check — PGlite 로 마이그레이션+시드+집계+RLS 검증

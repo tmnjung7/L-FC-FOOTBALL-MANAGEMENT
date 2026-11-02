@@ -22,7 +22,7 @@ let failed = false;
 
 await db.exec(`
   create schema auth;
-  create table auth.users (id uuid primary key, email text, raw_app_meta_data jsonb default '{}'::jsonb);
+  create table auth.users (id uuid primary key, email text, raw_app_meta_data jsonb default '{}'::jsonb, created_at timestamptz default now());
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
   create role authenticated; create role service_role; create role anon; grant usage on schema auth to authenticated, anon, service_role; grant execute on all functions in schema auth to authenticated, anon, service_role;
@@ -80,8 +80,13 @@ await db.exec(`select set_config('request.jwt.claims', '{"app_metadata":{"role":
 console.log("is_admin():", (await q(`select is_admin()`))[0]);
 await db.exec(`insert into players (name) values ('테스트선수')`);
 console.log("admin insert OK ✔");
-// scorer: 경기 기록은 가능, 선수 등록은 불가
+// 0003: 계정 생성만으로 역할 자동 부여
 await db.exec(`reset role;`);
+await db.exec(`insert into auth.users (id, email) values ('11111111-1111-1111-1111-111111111111', 'lfc1@lfc.team');`);
+const autoRole = (await q(`select raw_app_meta_data ->> 'role' as r from auth.users where email='lfc1@lfc.team'`))[0].r;
+console.log("auto role for lfc1:", autoRole, autoRole === "admin" ? "✔" : "✘");
+if (autoRole !== "admin") failed = true;
+// scorer: 경기 기록은 가능, 선수 등록은 불가
 await db.exec(`insert into auth.users (id, email) values ('33333333-3333-3333-3333-333333333333', 'lfc3@lfc.team');`);
 console.log("set_user_role:", (await q(`select public.set_user_role('lfc3@lfc.team', 'scorer') as r`))[0].r);
 console.log("app_metadata:", (await q(`select raw_app_meta_data::text as m from auth.users where email='lfc3@lfc.team'`))[0].m);
