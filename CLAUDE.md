@@ -76,18 +76,19 @@ futsal-manager/
    │  │  ├─ page.tsx         # 홈: 다음 모임(참석/불참), 최근 결과, 이달 랭킹, 평점 알림
    │  │  ├─ whoami/          # "내 이름 선택" (쿠키)
    │  │  ├─ matches/         # 경기 탭 (목록 → [id] 상세: 출석/쿼터/기록/보고서)
-   │  │  ├─ players/         # 선수 탭
+   │  │  ├─ players/         # 선수 탭: 목록(+등록 바텀시트) → [id] 상세(시즌 요약·폼 차트·쿼터별 기록)
    │  │  ├─ stats/           # 통계 탭
    │  │  └─ tactics/         # 전술판 탭
    │  ├─ login/              # 대표 로그인 (탭 없음)
    │  ├─ auth/callback, auth/signout
-   │  └─ actions/            # 서버 액션 (attendance.ts: 참석 응답, identity.ts: 이름 선택)
+   │  └─ actions/            # 서버 액션 (attendance.ts 참석 응답, identity.ts 이름 선택, players.ts 선수 등록/수정)
    ├─ middleware.ts          # Supabase 세션 쿠키 갱신 (로그인 강제 없음)
    ├─ components/
-   │  ├─ ui/                 # shadcn/ui 컴포넌트 (button, card, input, label, badge, skeleton, sonner)
+   │  ├─ ui/                 # shadcn/ui 컴포넌트 (button, card, input, label, badge, skeleton, sonner, drawer, switch, native-select)
    │  ├─ layout/             # AppShell, BottomNav, PageHeader, Placeholder
    │  ├─ auth/               # LoginForm, SignOutButton
-   │  └─ home/               # NextMatchCard(+RsvpButtons), RecentResults, MonthLeaders, RatingReminder
+   │  ├─ home/               # NextMatchCard(+RsvpButtons), RecentResults, MonthLeaders, RatingReminder
+   │  └─ players/            # PlayerList, PlayerFormDrawer(등록/수정), FormChart(Recharts)
    ├─ lib/
    │  ├─ utils.ts            # cn()
    │  ├─ nav.ts              # 하단 탭 정의 (순서·라벨·아이콘)
@@ -117,7 +118,7 @@ futsal-manager/
 ## 7. 작업 단계 (진행 상황)
 - [x] 1단계: 프로젝트 셋업, 하단 탭 뼈대, PWA 기본, Supabase 클라이언트 준비
 - [x] 2단계: 데이터 모델 — `supabase/migrations/0001_init.sql`, `src/types/database.ts`, `supabase/seed.sql`, `pnpm db:check`
-- [ ] 3단계: 화면 — [x] 로그인+홈 / [ ] 경기 / [ ] 선수 / [ ] 통계 / [ ] 평점 / [ ] 설정
+- [ ] 3단계: 화면 — [x] 로그인+홈 / [x] 선수(목록·등록·수정·상세) / [ ] 경기 / [ ] 통계 / [ ] 평점 / [ ] 설정
 - [ ] 4단계: 전술 현황판 (react-konva)
 - [ ] 4-2단계: 경기 피드백 보고서 + 월/분기/연 결산 리포트 + 카카오톡 공유(Web Share API)
 - [ ] 5단계: 검증 스크립트·Playwright E2E·Vercel 배포·백업 워크플로
