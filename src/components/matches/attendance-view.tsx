@@ -49,6 +49,16 @@ export function AttendanceView({ match, players, attendance, myPlayerId }: Props
                 );
               })}
             </ul>
+            {list.some((p) => byId.get(p.id)?.note) && (
+              <ul className="mt-2 space-y-0.5 text-xs">
+                {list.filter((p) => byId.get(p.id)?.note).map((p) => (
+                  <li key={p.id}>
+                    <span className="font-medium">{p.name}</span>
+                    <span className="text-muted-foreground"> · {byId.get(p.id)!.note}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         ),
       )}

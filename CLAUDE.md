@@ -23,6 +23,8 @@
 7. 경기 피드백 보고서: 평점·한 줄 피드백·MVP 투표 → 보고서 자동 생성 → 이미지로 카카오톡 공유
 8. 결산 리포트: 기록은 계속 쌓이고(이력), **월말·분기·연말** 결산 리포트를 자동 생성(`period_reports`). 집계는 `fn_player_season_stats(from, to)` 하나로 통일
 9. 포지션 이력: 쿼터마다 실제 뛴 포지션(`game_players.position`)을 기록해 선수별 "주로 뛴 포지션" 통계 제공
+10. 경기 후 선수별 비고: 출석 탭에서 선수마다 피드백 키워드/한 줄 메모(`attendance.note`) 입력 → 경기 리포트·결산 리포트 재료
+11. 전술판은 코트 위 격자(바둑판) 스냅 지원 — 마커를 칸에 맞춰 놓고 수정·저장 (4단계)
 
 ## 3. 기술 스택 (바꾸지 말 것)
 | 영역 | 선택 | 비고 |
@@ -64,7 +66,8 @@ futsal-manager/
 │  ├─ migrations/0001_init.sql
 │  ├─ migrations/0002_open_access.sql  # anon 조회, 역할 3단계(is_scorer), set_user_role
 │  ├─ migrations/0003_auto_roles.sql   # lfc1/2→admin, lfc3→scorer 자동 부여 트리거
-│  └─ seed.sql               # 가상 이름 15명, 모임 8회 × 9쿼터 (truncate 포함 — 운영 후 재실행 금지)
+│  ├─ seed.sql               # 가상 이름 15명, 모임 8회 × 9쿼터 (truncate 포함 — 운영 후 재실행 금지)
+│  └─ maintenance/cleanup_seed.sql  # 가상 데이터만 삭제 (실제 선수·대표가 만든 모임은 유지)
 ├─ scripts/
 │  ├─ db-check.mjs           # pnpm db:check — PGlite 로 마이그레이션+시드+집계+RLS 검증
 │  └─ verify-stats.ts        # (5단계) 실제 Supabase 데이터 집계 검증

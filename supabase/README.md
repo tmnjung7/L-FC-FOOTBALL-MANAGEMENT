@@ -104,3 +104,7 @@ Supabase 계정은 이메일 형식이 필요하므로 아이디 뒤에 `@lfc.te
 - 새 파일 `migrations/0002_xxx.sql` 을 추가하고 SQL Editor 에서 실행 (0001 은 다시 실행하지 않음)
 - `src/types/database.ts` 도 같이 수정
 - `pnpm db:check` 로 전체 마이그레이션 + 시드가 통과하는지 확인
+
+## 7. 가상 데이터 정리 (실제 운영 시작 전 1회)
+`maintenance/cleanup_seed.sql` 을 SQL Editor 에서 실행하면 가상 선수 15명과 가상 모임 기록이 삭제됩니다.
+앱에서 직접 등록한 선수와 대표 계정으로 만든 모임은 남습니다. 확인용 결과에 실제 선수 이름만 보이면 성공.

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Save } from "lucide-react";
+import { MessageSquarePlus, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,10 @@ const STYLE: Record<AttendanceStatus, string> = {
   excused: "bg-neutral-500 text-white",
 };
 
-type Row = { status: AttendanceStatus | null; late_minutes: string };
+type Row = { status: AttendanceStatus | null; late_minutes: string; note: string; noteOpen: boolean };
+
+/** 경기 후 비고에 빠르게 넣을 피드백 키워드 (탭하면 추가). 리포트 재료가 된다 */
+const KEYWORDS = ["활약", "득점력", "패스", "수비", "체력", "골키퍼", "집중력", "팀워크", "지각", "부상"];
 
 /** 출석 탭 편집기 (scorer 이상). 각 행에 4개 토글, 지각은 분 입력, 한 번에 저장 */
 export function AttendanceEditor({ matchId, players, attendance, lateThreshold }: Props) {
@@ -30,7 +33,7 @@ export function AttendanceEditor({ matchId, players, attendance, lateThreshold }
     const m = new Map<string, Row>();
     for (const p of players) {
       const a = attendance.find((x) => x.player_id === p.id);
-      m.set(p.id, { status: a?.status ?? null, late_minutes: a?.late_minutes?.toString() ?? "" });
+      m.set(p.id, { status: a?.status ?? null, late_minutes: a?.late_minutes?.toString() ?? "", note: a?.note ?? "", noteOpen: !!a?.note });
     }
     return m;
   }, [players, attendance]);
@@ -40,7 +43,7 @@ export function AttendanceEditor({ matchId, players, attendance, lateThreshold }
   function set(playerId: string, patch: Partial<Row>) {
     setRows((prev) => {
       const next = new Map(prev);
-      next.set(playerId, { ...(prev.get(playerId) ?? { status: null, late_minutes: "" }), ...patch });
+      next.set(playerId, { ...(prev.get(playerId) ?? { status: null, late_minutes: "", note: "", noteOpen: false }), ...patch });
       return next;
     });
     setDirty(true);
@@ -54,7 +57,7 @@ export function AttendanceEditor({ matchId, players, attendance, lateThreshold }
   function markAllPresent() {
     setRows((prev) => {
       const next = new Map(prev);
-      for (const p of players) if (!(prev.get(p.id)?.status)) next.set(p.id, { status: "present", late_minutes: "" });
+      for (const p of players) if (!(prev.get(p.id)?.status)) next.set(p.id, { ...(prev.get(p.id) ?? { note: "", noteOpen: false }), status: "present", late_minutes: "" });
       return next;
     });
     setDirty(true);
@@ -65,7 +68,7 @@ export function AttendanceEditor({ matchId, players, attendance, lateThreshold }
   function save() {
     const payload: AttendanceRowInput[] = players.map((p) => {
       const r = rows.get(p.id)!;
-      return { player_id: p.id, status: r.status, late_minutes: r.status === "late" && r.late_minutes !== "" ? Number(r.late_minutes) : null };
+      return { player_id: p.id, status: r.status, late_minutes: r.status === "late" && r.late_minutes !== "" ? Number(r.late_minutes) : null, note: r.note };
     });
     startTransition(async () => {
       const res = await saveAttendance(matchId, payload);
@@ -101,6 +104,15 @@ export function AttendanceEditor({ matchId, players, attendance, lateThreshold }
                   {p.name}
                   {!p.is_active && <span className="ml-1 text-xs">(비활성)</span>}
                 </span>
+                <button
+                  type="button"
+                  aria-label="비고(피드백) 입력"
+                  aria-pressed={r.noteOpen}
+                  onClick={() => set(p.id, { noteOpen: !r.noteOpen })}
+                  className={cn("flex size-9 shrink-0 items-center justify-center rounded-md", r.note ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-accent")}
+                >
+                  <MessageSquarePlus className="size-4" />
+                </button>
                 <div className="grid grid-cols-4 gap-1" role="group" aria-label={`${p.name} 출석`}>
                   {ORDER.map((s) => (
                     <button
@@ -118,6 +130,30 @@ export function AttendanceEditor({ matchId, players, attendance, lateThreshold }
                   ))}
                 </div>
               </div>
+              {r.noteOpen && (
+                <div className="flex flex-col gap-1.5">
+                  <Input
+                    value={r.note}
+                    onChange={(e) => set(p.id, { note: e.target.value.slice(0, 120) })}
+                    placeholder="비고 · 피드백 키워드 (예: 활약, 수비 집중)"
+                    className="h-10 text-sm"
+                    aria-label={`${p.name} 비고`}
+                  />
+                  <div className="flex flex-wrap gap-1">
+                    {KEYWORDS.map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => set(p.id, { note: r.note ? (r.note.split(/,\s*/).includes(k) ? r.note : `${r.note}, ${k}`) : k })}
+                        className="bg-muted hover:bg-accent h-8 rounded-full px-2.5 text-xs"
+                      >
+                        {k}
+                      </button>
+                    ))}
+                  </div>
+                  {!r.status && <p className="text-muted-foreground text-xs">비고는 출석 상태를 함께 골라야 저장됩니다.</p>}
+                </div>
+              )}
               {r.status === "late" && (
                 <div className="flex items-center justify-end gap-2 text-sm">
                   <span className="text-muted-foreground">지각</span>
