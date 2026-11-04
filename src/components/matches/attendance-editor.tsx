@@ -25,6 +25,7 @@ const STYLE: Record<AttendanceStatus, string> = {
 const KEYWORDS = ["활약", "득점력", "패스", "수비", "체력", "골키퍼", "집중력", "팀워크", "지각", "부상"];
 
 type Row = { rsvp: RsvpAnswer | null; status: AttendanceStatus | null; late_minutes: string; note: string; noteOpen: boolean };
+const EMPTY_ROW: Row = { rsvp: null, status: null, late_minutes: "", note: "", noteOpen: false };
 
 /**
  * 출석 편집기 (scorer 이상).
@@ -50,7 +51,7 @@ export function AttendanceEditor({ matchId, players, attendance, lateThreshold, 
   function set(playerId: string, patch: Partial<Row>) {
     setRows((prev) => {
       const next = new Map(prev);
-      next.set(playerId, { ...(prev.get(playerId) ?? { rsvp: null, status: null, late_minutes: "", note: "", noteOpen: false }), ...patch });
+      next.set(playerId, { ...(prev.get(playerId) ?? EMPTY_ROW), ...patch });
       return next;
     });
     setDirty(true);
@@ -89,14 +90,14 @@ export function AttendanceEditor({ matchId, players, attendance, lateThreshold, 
 
   function save() {
     const payload: AttendanceRowInput[] = players.map((p) => {
-      const r = rows.get(p.id)!;
+      const r = rows.get(p.id) ?? EMPTY_ROW;
       return { player_id: p.id, rsvp: r.rsvp, status: r.status, late_minutes: r.status === "late" && r.late_minutes !== "" ? Number(r.late_minutes) : null, note: r.note };
     });
     startTransition(async () => {
       const res = await saveAttendance(matchId, payload);
-      if ("error" in res) toast.error(res.error);
+      if ("error" in res) toast.error(res.error, { duration: 10000 });
       else {
-        toast.success("저장했습니다");
+        toast.success(`저장했습니다 (${payload.filter((r) => r.status || r.rsvp).length}명)`);
         setDirty(false);
         router.refresh();
       }
@@ -132,7 +133,7 @@ export function AttendanceEditor({ matchId, players, attendance, lateThreshold, 
 
       <ul className="bg-card divide-y rounded-xl border shadow-sm">
         {players.map((p) => {
-          const r = rows.get(p.id)!;
+          const r = rows.get(p.id) ?? EMPTY_ROW;
           return (
             <li key={p.id} className="flex flex-col gap-2 px-3 py-2">
               <div className="flex items-center gap-2">

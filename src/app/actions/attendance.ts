@@ -9,8 +9,9 @@ export type RsvpStatus = "yes" | "no";
 function friendlyAttendanceError(message: string): string {
   if (/rsvp/i.test(message) && /could not find|does not exist|schema cache/i.test(message))
     return "데이터베이스 업데이트가 필요합니다: supabase/migrations/0004_rsvp.sql 을 Supabase SQL Editor 에서 실행해 주세요.";
-  if (message.includes("row-level security")) return "권한이 없습니다. 예정 모임의 투표만 가능하거나, 대표 계정 로그인이 필요합니다.";
-  return message;
+  if (message.includes("row-level security")) return `권한 오류(RLS): 대표 계정 로그인 상태인지 확인해 주세요. [${message}]`;
+  if (/Invalid API key|JWT/i.test(message)) return `Supabase 키 오류: Vercel 환경변수의 키가 현재 프로젝트 것인지 확인해 주세요. [${message}]`;
+  return `저장 실패: ${message}`;
 }
 
 /**
@@ -43,8 +44,17 @@ export type AttendanceRowInput = {
 
 /** 출석 탭 "한 번에 저장". scorer 이상. 투표·당일 둘 다 비어 있으면 행 삭제 */
 export async function saveAttendance(matchId: string, rows: AttendanceRowInput[]): Promise<{ ok: true } | { error: string }> {
+  try {
+    return await saveAttendanceInner(matchId, rows);
+  } catch (e) {
+    return { error: `저장 중 오류: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+async function saveAttendanceInner(matchId: string, rows: AttendanceRowInput[]): Promise<{ ok: true } | { error: string }> {
   const viewer = await getViewer();
-  if (!viewer.canScore) return { error: "출석 저장은 대표 계정 로그인 후 가능합니다." };
+  if (!viewer.user) return { error: "로그인이 풀렸습니다. 다시 로그인해 주세요." };
+  if (!viewer.canScore) return { error: `출석 저장 권한이 없습니다 (현재 역할: ${viewer.role ?? "없음"}). lfc1·lfc2·lfc3 로 로그인했는지, 0003 SQL 적용 후 재로그인했는지 확인해 주세요.` };
   const supabase = await createClient();
 
   const toUpsert = rows
