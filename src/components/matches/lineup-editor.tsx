@@ -6,6 +6,7 @@ import { Copy, Shuffle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { copyPreviousLineup, setLineup, type LineupRow } from "@/app/actions/games";
+import { MatchTypeButton } from "@/components/matches/match-type-button";
 import type { LineupEntry } from "@/lib/queries/games";
 import type { PlayerRow, PositionType, TeamSide } from "@/types/database";
 import { cn } from "@/lib/utils";
@@ -144,7 +145,16 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
           </span>
         </p>
         {list.length === 0 ? (
-          <p className="text-muted-foreground py-2 text-center text-xs">아래 참석자를 탭해 배정</p>
+          <div className="flex flex-col items-center gap-2 py-2">
+            <p className="text-muted-foreground text-center text-xs">아래 참석자를 탭해 배정</p>
+            {team === "B" && !external && (
+              <MatchTypeButton
+                matchId={matchId}
+                opponent={null}
+                trigger={<Button type="button" variant="outline" size="sm" className="h-9 text-xs">상대팀 경기로 바꾸기</Button>}
+              />
+            )}
+          </div>
         ) : (
           <ul className="flex flex-col gap-1">
             {list.map((p) => (

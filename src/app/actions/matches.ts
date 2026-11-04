@@ -115,3 +115,25 @@ export async function deleteMatch(id: string): Promise<ActionResult> {
   revalidateMatch();
   redirect("/matches");
 }
+
+/** 경기 유형 전환: 상대팀 이름을 넣으면 상대팀 경기, null 이면 자체전. scorer 이상 */
+export async function setMatchOpponent(id: string, opponent: string | null): Promise<ActionResult> {
+  const viewer = await getViewer();
+  if (!viewer.canScore) return { error: "경기 유형 변경은 대표 계정 로그인 후 가능합니다." };
+  const name = opponent?.trim() || null;
+  if (name && name.length > 40) return { error: "상대팀 이름은 40자 이내로 입력해 주세요." };
+  const supabase = await createClient();
+  if (name === null) {
+    // 자체전으로 되돌릴 때 득점자 없는 실점 기록이 있으면 막는다 (자체전은 득점자 필수)
+    const { data: games } = await supabase.from("games").select("id").eq("match_id", id);
+    const ids = (games ?? []).map((g) => g.id);
+    if (ids.length) {
+      const { count } = await supabase.from("events").select("id", { count: "exact", head: true }).in("game_id", ids).is("scorer_id", null);
+      if (count && count > 0) return { error: "득점자 없는 실점 기록이 있어 자체전으로 바꿀 수 없습니다." };
+    }
+  }
+  const { error } = await supabase.from("matches").update({ opponent: name }).eq("id", id);
+  if (error) return { error: friendly(error.message) };
+  revalidateMatch(id);
+  return { ok: true, id };
+}

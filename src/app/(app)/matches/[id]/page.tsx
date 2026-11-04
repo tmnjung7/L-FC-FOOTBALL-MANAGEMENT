@@ -12,6 +12,7 @@ import { GamesTab } from "@/components/matches/games-tab";
 import { MatchActions } from "@/components/matches/match-actions";
 import { MatchTabs, type MatchTab } from "@/components/matches/match-tabs";
 import { RecordCta } from "@/components/matches/record-cta";
+import { MatchTypeButton } from "@/components/matches/match-type-button";
 import { getViewer } from "@/lib/auth";
 import { formatDate, formatTime } from "@/lib/date";
 import { getTeamSettings } from "@/lib/queries/home";
@@ -62,7 +63,20 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <Badge variant={STATUS_VARIANT[match.status]}>{STATUS_LABEL[match.status]}</Badge>
           <Badge variant="outline">{match.format}</Badge>
-          <Badge variant={match.opponent ? "teamB" : "secondary"}>{match.opponent ? `vs ${match.opponent}` : "자체전"}</Badge>
+          {viewer.canScore ? (
+            <MatchTypeButton
+              matchId={id}
+              opponent={match.opponent}
+              recentOpponents={opponents}
+              trigger={
+                <button type="button" className="inline-flex" aria-label="경기 유형 바꾸기">
+                  <Badge variant={match.opponent ? "teamB" : "secondary"} className="h-6 cursor-pointer">{match.opponent ? `vs ${match.opponent}` : "자체전"} ✎</Badge>
+                </button>
+              }
+            />
+          ) : (
+            <Badge variant={match.opponent ? "teamB" : "secondary"}>{match.opponent ? `vs ${match.opponent}` : "자체전"}</Badge>
+          )}
           {match.start_time && <span className="text-muted-foreground flex items-center gap-1 text-xs"><Clock className="size-3" />{formatTime(match.start_time)}</span>}
           {match.venue && <span className="text-muted-foreground flex items-center gap-1 text-xs"><MapPin className="size-3" />{match.venue}</span>}
         </div>

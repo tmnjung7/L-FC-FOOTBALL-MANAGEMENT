@@ -36,13 +36,13 @@ export function MatchFormDrawer({ match, trigger, defaultFormat = "6v6", default
   const [venue, setVenue] = useState(match?.venue ?? recentVenues[0] ?? "");
   const [format, setFormat] = useState<MatchFormat>(match?.format ?? defaultFormat);
   const [notes, setNotes] = useState(match?.notes ?? "");
-  const [external, setExternal] = useState(!!match?.opponent);
+  // 대부분 상대팀과 경기하므로 새 모임 기본값은 상대팀 경기
+  const [external, setExternal] = useState(match ? !!match.opponent : true);
   const [opponent, setOpponent] = useState(match?.opponent ?? "");
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (external && !opponent.trim()) { toast.error("상대팀 이름을 입력해 주세요."); return; }
-    const common = { start_time: time || null, venue: venue || null, format, notes: notes || null, opponent: external ? opponent.trim() : null };
+    const common = { start_time: time || null, venue: venue || null, format, notes: notes || null, opponent: external ? opponent.trim() || "상대팀" : null };
     startTransition(async () => {
       const result = isEdit
         ? await updateMatch(match.id, { match_date: dates[0], ...common })
@@ -89,7 +89,7 @@ export function MatchFormDrawer({ match, trigger, defaultFormat = "6v6", default
               </div>
               {external && (
                 <>
-                  <Input list="opponent-list" value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="상대팀 이름 (예: FC 강남)" maxLength={40} autoFocus />
+                  <Input list="opponent-list" value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="상대팀 이름 (모르면 비워도 됨 → '상대팀')" maxLength={40} />
                   <datalist id="opponent-list">
                     {recentOpponents.map((o) => (
                       <option key={o} value={o} />
