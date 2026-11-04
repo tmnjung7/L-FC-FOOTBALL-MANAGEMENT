@@ -21,10 +21,11 @@ type Props = {
   defaultFormat?: MatchFormat;
   defaultTime?: string; // HH:MM
   recentVenues?: string[];
+  recentOpponents?: string[];
 };
 
 /** 모임 만들기(여러 날짜 한 번에) / 수정 바텀시트. scorer 이상만 트리거를 렌더링할 것 */
-export function MatchFormDrawer({ match, trigger, defaultFormat = "6v6", defaultTime = "10:00", recentVenues = [] }: Props) {
+export function MatchFormDrawer({ match, trigger, defaultFormat = "6v6", defaultTime = "10:00", recentVenues = [], recentOpponents = [] }: Props) {
   const router = useRouter();
   const isEdit = !!match;
   const [open, setOpen] = useState(false);
@@ -35,10 +36,13 @@ export function MatchFormDrawer({ match, trigger, defaultFormat = "6v6", default
   const [venue, setVenue] = useState(match?.venue ?? recentVenues[0] ?? "");
   const [format, setFormat] = useState<MatchFormat>(match?.format ?? defaultFormat);
   const [notes, setNotes] = useState(match?.notes ?? "");
+  const [external, setExternal] = useState(!!match?.opponent);
+  const [opponent, setOpponent] = useState(match?.opponent ?? "");
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const common = { start_time: time || null, venue: venue || null, format, notes: notes || null };
+    if (external && !opponent.trim()) { toast.error("상대팀 이름을 입력해 주세요."); return; }
+    const common = { start_time: time || null, venue: venue || null, format, notes: notes || null, opponent: external ? opponent.trim() : null };
     startTransition(async () => {
       const result = isEdit
         ? await updateMatch(match.id, { match_date: dates[0], ...common })
@@ -77,6 +81,23 @@ export function MatchFormDrawer({ match, trigger, defaultFormat = "6v6", default
                 ))}
               </div>
             )}
+            <div className="flex flex-col gap-2">
+              <Label>경기 유형</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant={external ? "outline" : "default"} onClick={() => setExternal(false)}>자체전 (A팀 vs B팀)</Button>
+                <Button type="button" variant={external ? "default" : "outline"} onClick={() => setExternal(true)}>상대팀 경기</Button>
+              </div>
+              {external && (
+                <>
+                  <Input list="opponent-list" value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="상대팀 이름 (예: FC 강남)" maxLength={40} autoFocus />
+                  <datalist id="opponent-list">
+                    {recentOpponents.map((o) => (
+                      <option key={o} value={o} />
+                    ))}
+                  </datalist>
+                </>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="m-time">시작 시간</Label>

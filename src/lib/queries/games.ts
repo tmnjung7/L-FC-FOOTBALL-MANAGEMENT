@@ -49,7 +49,7 @@ export async function getMatchGames(matchId: string): Promise<MatchGamesData> {
     lineup: lineups.filter((l) => l.game_id === game.id).map((l) => ({ ...l, name: nameOf.get(l.player_id) ?? "?" })),
     events: events
       .filter((e) => e.game_id === game.id)
-      .map((e) => ({ ...e, scorer_name: nameOf.get(e.scorer_id) ?? "?", assist_name: e.assist_id ? (nameOf.get(e.assist_id) ?? null) : null })),
+      .map((e) => ({ ...e, scorer_name: e.scorer_id ? (nameOf.get(e.scorer_id) ?? "?") : "", assist_name: e.assist_id ? (nameOf.get(e.assist_id) ?? null) : null })),
     tactic_name: game.tactic_id ? (tacticName.get(game.tactic_id) ?? null) : null,
   }));
 

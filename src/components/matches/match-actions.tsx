@@ -10,10 +10,10 @@ import { MatchFormDrawer } from "@/components/matches/match-form-drawer";
 import { deleteMatch, setMatchStatus } from "@/app/actions/matches";
 import type { MatchRow } from "@/types/database";
 
-type Props = { match: MatchRow; gameCount: number; recentVenues: string[] };
+type Props = { match: MatchRow; gameCount: number; recentVenues: string[]; recentOpponents?: string[] };
 
 /** 모임 상세 헤더의 대표용 메뉴: 수정 / 모임 종료(완료) / 취소 / 예정으로 되돌리기 / 삭제 */
-export function MatchActions({ match, gameCount, recentVenues }: Props) {
+export function MatchActions({ match, gameCount, recentVenues, recentOpponents = [] }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -41,6 +41,7 @@ export function MatchActions({ match, gameCount, recentVenues }: Props) {
       <MatchFormDrawer
         match={match}
         recentVenues={recentVenues}
+        recentOpponents={recentOpponents}
         trigger={
           <Button variant="outline" size="icon" aria-label="모임 수정">
             <Pencil className="size-5" />

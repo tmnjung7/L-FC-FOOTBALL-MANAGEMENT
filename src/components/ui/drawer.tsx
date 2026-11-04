@@ -4,9 +4,41 @@ import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 import { cn } from "@/lib/utils";
 
+/**
+ * 바텀시트가 닫힌 뒤에도 body 에 스크롤 잠금(overflow/position/pointer-events)이 남는 경우가 있어
+ * 닫힘 애니메이션이 끝난 뒤 열린 시트가 없으면 잠금을 강제로 푼다.
+ */
+function releaseScrollLock() {
+  if (typeof document === "undefined") return;
+  window.setTimeout(() => {
+    if (document.querySelector("[data-vaul-drawer][data-state='open'], [data-slot='drawer-content'][data-state='open']")) return;
+    const b = document.body.style;
+    b.overflow = "";
+    b.position = "";
+    b.top = "";
+    b.left = "";
+    b.right = "";
+    b.height = "";
+    b.pointerEvents = "";
+    b.touchAction = "";
+    document.documentElement.style.overflow = "";
+    document.documentElement.style.touchAction = "";
+  }, 450);
+}
+
 // shadcn/ui Drawer (vaul) — 모바일 바텀시트. 모든 입력 폼은 이걸로 띄운다 (중앙 모달 금지)
-function Drawer({ ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
+function Drawer({ onOpenChange, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
+  return (
+    <DrawerPrimitive.Root
+      data-slot="drawer"
+      repositionInputs={false}
+      onOpenChange={(open) => {
+        onOpenChange?.(open);
+        if (!open) releaseScrollLock();
+      }}
+      {...props}
+    />
+  );
 }
 
 function DrawerTrigger({ ...props }: React.ComponentProps<typeof DrawerPrimitive.Trigger>) {

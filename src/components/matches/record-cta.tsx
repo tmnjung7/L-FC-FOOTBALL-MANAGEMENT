@@ -5,13 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { NewGameButton } from "@/components/matches/new-game-button";
 import type { GameFull } from "@/lib/queries/games";
 
-type Props = { matchId: string; games: GameFull[]; canScore: boolean; attendeeCount: number; status: "scheduled" | "done" | "cancelled" };
+type Props = { matchId: string; games: GameFull[]; canScore: boolean; attendeeCount: number; status: "scheduled" | "done" | "cancelled"; labelA?: string; labelB?: string };
 
 /**
  * 모임 화면 맨 위 "경기 기록하기" 한 버튼.
  * 쿼터가 없으면 Q1 을 만들고 점수판으로, 있으면 마지막 쿼터 점수판으로 바로 간다.
  */
-export function RecordCta({ matchId, games, canScore, attendeeCount, status }: Props) {
+export function RecordCta({ matchId, games, canScore, attendeeCount, status, labelA = "A", labelB = "B" }: Props) {
   if (status === "cancelled") return null;
   const last = games[games.length - 1];
   const totalA = games.reduce((n, g) => n + g.game.team_a_score, 0);
@@ -42,7 +42,7 @@ export function RecordCta({ matchId, games, canScore, attendeeCount, status }: P
           <>
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">경기 기록 중 · {games.length}쿼터</p>
-              <p className="text-muted-foreground text-xs">합계 A {totalA} : {totalB} B</p>
+              <p className="text-muted-foreground text-xs">합계 {labelA} {totalA} : {totalB} {labelB}</p>
             </div>
             <div className="grid grid-cols-[1fr_auto] gap-2">
               <Button asChild size="lg" className="h-14 text-base">

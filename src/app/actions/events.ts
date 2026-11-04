@@ -9,7 +9,8 @@ export type ActionResult = { ok: true; id?: string } | { error: string };
 
 export type GoalInput = {
   team: TeamSide; // 득점이 올라가는 팀
-  scorer_id: string;
+  /** 득점자. 상대팀 경기의 실점은 null 가능 (자책골이면 우리 선수 id) */
+  scorer_id: string | null;
   assist_id: string | null;
   minute: number | null;
   is_own_goal: boolean; // true 면 scorer 는 상대팀 선수
@@ -18,6 +19,8 @@ export type GoalInput = {
 function friendly(message: string): string {
   if (message.includes("row-level security")) return "득점 입력은 대표 계정 로그인 후 가능합니다.";
   if (message.includes("events_check")) return "자책골에는 어시스트를 넣을 수 없고, 득점자와 어시스트는 달라야 합니다.";
+  if (message.includes("자체전에서는 득점자")) return "자체전에서는 득점자를 골라야 합니다.";
+  if (/scorer_id.*null|null value in column "scorer_id"/i.test(message)) return "데이터베이스 업데이트가 필요합니다: supabase/migrations/0005_opponent.sql 을 실행해 주세요.";
   return message;
 }
 
@@ -39,7 +42,6 @@ function revalidate(matchId: string, gameId: string) {
 export async function addGoal(matchId: string, gameId: string, input: GoalInput): Promise<ActionResult> {
   const viewer = await getViewer();
   if (!viewer.canScore) return { error: "득점 입력은 대표 계정 로그인 후 가능합니다." };
-  if (!input.scorer_id) return { error: "득점자를 골라 주세요." };
   if (input.minute != null && (input.minute < 0 || input.minute > 60)) return { error: "분은 0~60 사이여야 합니다." };
 
   const supabase = await createClient();
@@ -49,7 +51,7 @@ export async function addGoal(matchId: string, gameId: string, input: GoalInput)
       game_id: gameId,
       team: input.team,
       scorer_id: input.scorer_id,
-      assist_id: input.is_own_goal ? null : input.assist_id || null,
+      assist_id: input.is_own_goal || !input.scorer_id ? null : input.assist_id || null,
       minute: input.minute,
       is_own_goal: input.is_own_goal,
     })

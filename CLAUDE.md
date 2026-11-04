@@ -16,6 +16,8 @@
 ## 2. 핵심 기능 (우선순위 순)
 1. 선수 관리: 이름, 포지션 선호(GK/FIXO/ALA/PIVO/ANY), 활동 여부
 2. 경기(모임) 기록: 날짜·장소·참석자·지각자, 쿼터별 팀 편성, 쿼터별 스코어
+   - **경기 유형 2가지**: 자체전(A팀 vs B팀, 둘 다 우리 선수) / **상대팀 경기**(`matches.opponent` 이름만, A = 우리, B = 상대).
+     상대팀 경기는 편성이 "출전/휴식" 한 칸, 실점은 득점자 없이(`events.scorer_id` null) 기록, 우리 자책골은 scorer = 우리 선수 + is_own_goal
 3. 개인 기록: 쿼터별 득점·어시스트·출전, 모임별 평점(1~10, 0.5 단위), 누적 집계
 4. 출석·지각 관리 2단계: **사전 투표**(`attendance.rsvp` yes/no, 경기 3~4일 전 카톡 투표 결과) → **당일 확정**(`attendance.status` 출석/지각/결석/사전통보).
    출석률·지각·결석·노쇼(투표 참석인데 결석) 집계는 status 기준. 사전통보 결석은 출석률 분모에서 제외
@@ -44,7 +46,8 @@
 - **모바일 우선.** 최소 너비 360px에서 가로 스크롤 없음. 태블릿(768px+)은 전술판·통계만 2열로 넓어지면 됨
 - 터치 타깃 최소 **44×44px** (Button 기본 높이 h-11 = 44px)
 - 한국어 UI. 날짜는 `YYYY-MM-DD (요일)` 형식
-- 입력 폼은 **바텀시트**(화면 아래서 올라오는 창). 중앙 모달 팝업 금지
+- 입력 폼은 **바텀시트**(화면 아래서 올라오는 창). 중앙 모달 팝업 금지. Drawer 는 닫힐 때 body 스크롤 잠금을 강제로 해제한다(`releaseScrollLock`)
+- 오류 화면: `(app)/error.tsx` 가 원인 문구 + "캐시 비우고 새로 열기"(서비스워커·캐시 삭제) 제공
 - 숫자 입력은 키패드형(`inputMode="numeric"`), 선수 선택은 검색 가능한 칩(chip)
 - 모든 화면에 로딩·빈 상태·에러 상태 포함. 각 라우트에 `loading.tsx`(스켈레톤). 서버 조회는 `Promise.all` 로 병렬, 순차 await 금지
 - 권한 없는 사용자에게는 입력 버튼을 **숨김**(비활성화가 아니라 렌더링 안 함). 단, 진짜 권한 통제는 RLS
@@ -69,6 +72,7 @@ futsal-manager/
 │  ├─ migrations/0002_open_access.sql  # anon 조회, 역할 3단계(is_scorer), set_user_role
 │  ├─ migrations/0003_auto_roles.sql   # lfc1/2→admin, lfc3→scorer 자동 부여 트리거
 │  ├─ migrations/0004_rsvp.sql         # 투표(rsvp)와 당일 출석(status) 분리, 노쇼 집계, 투표 집계 뷰 컬럼
+│  ├─ migrations/0005_opponent.sql     # 상대팀 경기: matches.opponent, events.scorer_id nullable(+자체전 검사 트리거), 뷰에 opponent·합계 골
 │  ├─ seed.sql               # 가상 이름 15명, 모임 8회 × 9쿼터 (truncate 포함 — 운영 후 재실행 금지)
 │  └─ maintenance/cleanup_seed.sql  # 가상 데이터만 삭제 (실제 선수·대표가 만든 모임은 유지)
 ├─ scripts/
@@ -97,7 +101,8 @@ futsal-manager/
    │  ├─ home/               # NextMatchCard(+RsvpButtons), RecentResults, MonthLeaders, RatingReminder
    │  ├─ players/            # PlayerList, PlayerFormDrawer(등록/수정), FormChart(Recharts)
    │  ├─ matches/            # MatchCard, MatchFormDrawer(+MultiDatePicker), MatchTabs, MatchActions, AttendanceEditor/View,
-   │  │                      #   GamesTab, QuarterCountBar, NewGameButton, LineupEditor, Scoreboard(타이머), GoalDrawer, EventList, EventsTab, GameSettings
+   │  │                      #   RecordCta(경기 기록하기 버튼), GamesTab, QuarterCountBar, NewGameButton, LineupEditor(external 모드), Scoreboard(타이머),
+   │  │                      #   QuickGoalDrawer(2단계 득점), ConcedeDrawer(실점), GoalDrawer(득점 탭 상세), EventList, EventsTab, GameSettings
    │  └─ tactics/            # TacticsBoard, BoardCanvas(코트·마커·화살표·영역·메모, 세로는 Group -90° 회전), BoardToolbar(도구·프리셋·선수·저장·공유), TacticThumbnail(SVG)
    ├─ lib/
    │  ├─ utils.ts            # cn()
@@ -106,6 +111,8 @@ futsal-manager/
    │  ├─ auth.ts             # getViewer(): user/role/isAdmin/canScore/player
    │  ├─ date.ts             # YYYY-MM-DD (요일), 한국 시간 today, 월 범위
    │  ├─ identity.ts         # 이름 선택 쿠키 상수
+   │  ├─ match-labels.ts     # teamLabel/resultLabel: 자체전 A팀/B팀 ↔ 상대팀 경기 우리/상대
+   │  ├─ supabase/migrations-check.ts # 적용 안 된 SQL 자동 점검 (홈·로그인 안내). 마이그레이션 추가 시 한 줄 추가
    │  ├─ queries/            # 화면별 서버 조회 함수 (home, players, matches, games)
    │  ├─ supabase/           # client.ts(브라우저), server.ts(서버) — Database 제네릭 적용
    │  ├─ formations.ts       # 포메이션 프리셋 상수 + 선호 포지션 자동 배정 (프리셋 추가는 여기만)

@@ -32,9 +32,20 @@ export function RecentResults({ results }: { results: MatchSummaryRow[] }) {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    <Badge variant="teamA">A {m.team_a_wins}승</Badge>
-                    <Badge variant="muted">{m.draws}무</Badge>
-                    <Badge variant="teamB">B {m.team_b_wins}승</Badge>
+                    {m.opponent ? (
+                      <>
+                        <span className="text-muted-foreground max-w-20 truncate text-xs">vs {m.opponent}</span>
+                        <Badge variant={m.team_a_goals > m.team_b_goals ? "success" : m.team_a_goals === m.team_b_goals ? "muted" : "destructive"}>
+                          {m.team_a_goals}:{m.team_b_goals} {m.team_a_goals > m.team_b_goals ? "승" : m.team_a_goals === m.team_b_goals ? "무" : "패"}
+                        </Badge>
+                      </>
+                    ) : (
+                      <>
+                        <Badge variant="teamA">A {m.team_a_wins}승</Badge>
+                        <Badge variant="muted">{m.draws}무</Badge>
+                        <Badge variant="teamB">B {m.team_b_wins}승</Badge>
+                      </>
+                    )}
                   </div>
                 </Link>
               </li>

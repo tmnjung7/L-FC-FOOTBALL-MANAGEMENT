@@ -44,13 +44,16 @@ export default async function GamePage({ params }: Props) {
   const perTeam = match.format === "5v5" ? 5 : 6;
   const isLast = idx === data.games.length - 1;
   const lineupEmpty = current.lineup.length === 0;
+  const external = !!match.opponent;
+  const labelA = external ? "우리" : "A팀";
+  const labelB = external ? match.opponent! : "B팀";
 
   const lineupSection = (
     <section className={lineupEmpty && viewer.canScore ? "ring-primary/40 rounded-xl ring-2 ring-offset-2" : undefined}>
       <h3 className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold">
         <span className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-full text-xs">1</span>
-        편성 {current.lineup.length}명
-        {lineupEmpty && viewer.canScore && <span className="text-primary text-xs font-normal">← 먼저 여기서 A팀/B팀을 정하세요</span>}
+        {external ? "출전 선수" : "편성"} {current.lineup.length}명
+        {lineupEmpty && viewer.canScore && <span className="text-primary text-xs font-normal">{external ? "← 먼저 출전할 선수를 고르세요" : "← 먼저 여기서 A팀/B팀을 정하세요"}</span>}
       </h3>
       {viewer.canScore ? (
         <LineupEditor
@@ -61,12 +64,13 @@ export default async function GamePage({ params }: Props) {
           perTeam={perTeam}
           hasPrevious={!!prev}
           quartersByPlayer={data.quartersByPlayer}
+          external={external}
         />
       ) : (
-        <div className="grid grid-cols-2 gap-2">
-          {(["A", "B"] as const).map((team) => (
+        <div className={external ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2"}>
+          {(external ? (["A"] as const) : (["A", "B"] as const)).map((team) => (
             <div key={team} className="bg-card rounded-xl border p-2">
-              <Badge variant={team === "A" ? "teamA" : "teamB"} className="mb-1">{team}팀</Badge>
+              <Badge variant={team === "A" ? "teamA" : "teamB"} className="mb-1">{team === "A" ? labelA : labelB}</Badge>
               <ul className="text-sm">
                 {current.lineup.filter((l) => l.team === team).map((l) => (
                   <li key={l.id} className="flex justify-between py-0.5">
@@ -88,7 +92,7 @@ export default async function GamePage({ params }: Props) {
         <span className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-full text-xs">2</span>
         타이머 시작 → 골 버튼
       </h3>
-      <Scoreboard matchId={matchId} current={current} canScore={viewer.canScore} />
+      <Scoreboard matchId={matchId} current={current} canScore={viewer.canScore} opponent={match.opponent} />
       {viewer.canScore && isLast && (
         <NewGameButton matchId={matchId} hasPrevious size="lg" label={`다음 쿼터 (Q${current.game.game_number + 1}) 시작 — 편성 그대로 복사`} />
       )}
@@ -97,7 +101,7 @@ export default async function GamePage({ params }: Props) {
           <span className="bg-muted text-muted-foreground flex size-6 items-center justify-center rounded-full text-xs">3</span>
           이 쿼터 득점 {current.events.length}
         </h3>
-        <EventList matchId={matchId} gameId={gameId} events={current.events} canScore={viewer.canScore} />
+        <EventList matchId={matchId} gameId={gameId} events={current.events} canScore={viewer.canScore} labelA={labelA} labelB={labelB} />
       </section>
     </div>
   );
@@ -106,7 +110,7 @@ export default async function GamePage({ params }: Props) {
     <>
       <PageHeader
         title={`Q${current.game.game_number}`}
-        description={`${formatDateShort(match.match_date)} · ${match.venue ?? ""}`}
+        description={`${formatDateShort(match.match_date)}${match.opponent ? ` · vs ${match.opponent}` : ""} · ${match.venue ?? ""}`}
         action={
           <div className="flex items-center gap-1">
             <Button asChild variant="ghost" size="icon" aria-label="이전 쿼터" disabled={!prev}>

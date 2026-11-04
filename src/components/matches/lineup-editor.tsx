@@ -19,6 +19,8 @@ type Props = {
   hasPrevious: boolean;
   /** 모임 전체 출전 수 (편성 참고용) */
   quartersByPlayer: Map<string, number>;
+  /** 상대팀 경기: 우리 출전 선수(A)만 편성. 탭 = 출전 ↔ 휴식 */
+  external?: boolean;
 };
 
 type Slot = { team: TeamSide; position: PositionType | null };
@@ -28,7 +30,7 @@ const POS: (PositionType | null)[] = [null, "GK", "FIXO", "ALA", "PIVO"];
  * 편성 편집기. 참석자 칩을 탭하면 휴식 → A → B → 휴식 순으로 바뀐다.
  * 바뀔 때마다 1초 뒤 자동 저장. 팀 목록에서 이름 옆 포지션을 탭하면 포지션이 바뀐다.
  */
-export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasPrevious, quartersByPlayer }: Props) {
+export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasPrevious, quartersByPlayer, external = false }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [slots, setSlots] = useState<Map<string, Slot>>(() => new Map(lineup.map((l) => [l.player_id, { team: l.team, position: l.position }])));
@@ -80,7 +82,7 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
     update((m) => {
       const cur = m.get(playerId);
       if (!cur) m.set(playerId, { team: "A", position: null });
-      else if (cur.team === "A") m.set(playerId, { team: "B", position: cur.position });
+      else if (cur.team === "A" && !external) m.set(playerId, { team: "B", position: cur.position });
       else m.delete(playerId);
     });
   }
@@ -110,7 +112,8 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
     update((m) => {
       m.clear();
       const sorted = [...attendees].sort((a, b) => (quartersByPlayer.get(a.id) ?? 0) - (quartersByPlayer.get(b.id) ?? 0) || Math.random() - 0.5);
-      sorted.slice(0, perTeam * 2).forEach((p, i) => m.set(p.id, { team: i % 2 === 0 ? "A" : "B", position: null }));
+      if (external) sorted.slice(0, perTeam).forEach((p) => m.set(p.id, { team: "A", position: null }));
+      else sorted.slice(0, perTeam * 2).forEach((p, i) => m.set(p.id, { team: i % 2 === 0 ? "A" : "B", position: null }));
     });
   }
 
@@ -123,7 +126,7 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
     return (
       <div className={cn("rounded-xl border p-2", team === "A" ? "border-team-a/40 bg-team-a/5" : "border-team-b/40 bg-team-b/5")}>
         <p className={cn("mb-1 flex items-center justify-between text-xs font-bold", team === "A" ? "text-team-a" : "text-team-b")}>
-          <span>{team}팀</span>
+          <span>{external ? "출전" : `${team}팀`}</span>
           <span className={cn(over && "text-destructive")}>{list.length}/{perTeam}</span>
         </p>
         {list.length === 0 ? (
@@ -169,14 +172,14 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className={cn("grid gap-2", external ? "grid-cols-1" : "grid-cols-2")}>
         <TeamBox team="A" list={teamA} />
-        <TeamBox team="B" list={teamB} />
+        {!external && <TeamBox team="B" list={teamB} />}
       </div>
 
       <div className="rounded-xl border p-2">
         <p className="text-muted-foreground mb-1 text-xs font-semibold">
-          휴식 {rest.length}명 {attendees.length === 0 ? "· 출석 탭에서 참석자(또는 투표 참석)를 먼저 체크하세요" : "· 이름을 탭: 한 번 → A팀, 두 번 → B팀, 세 번 → 휴식"}
+          휴식 {rest.length}명 {attendees.length === 0 ? "· 출석 탭에서 참석자(또는 투표 참석)를 먼저 체크하세요" : external ? "· 이름을 탭하면 출전 ↔ 휴식" : "· 이름을 탭: 한 번 → A팀, 두 번 → B팀, 세 번 → 휴식"}
         </p>
         <div className="flex flex-wrap gap-1.5">
           {rest.map((p) => (

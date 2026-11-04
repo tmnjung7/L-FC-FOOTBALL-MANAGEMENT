@@ -5,10 +5,10 @@ import { NewGameButton } from "@/components/matches/new-game-button";
 import { QuarterCountBar } from "@/components/matches/quarter-count-bar";
 import type { MatchGamesData } from "@/lib/queries/games";
 
-type Props = { matchId: string; data: MatchGamesData; canScore: boolean };
+type Props = { matchId: string; data: MatchGamesData; canScore: boolean; opponent?: string | null };
 
 /** 쿼터 탭: 출전 수 미니 바 + 쿼터 카드 목록 */
-export function GamesTab({ matchId, data, canScore }: Props) {
+export function GamesTab({ matchId, data, canScore, opponent = null }: Props) {
   const { games, attendees, quartersByPlayer } = data;
   return (
     <div className="flex flex-col gap-3">
@@ -40,8 +40,12 @@ export function GamesTab({ matchId, data, canScore }: Props) {
                     </p>
                   </div>
                   <div className="min-w-0 flex-1 text-xs">
-                    <p className="truncate"><Badge variant="teamA" className="mr-1 h-4 px-1 text-[10px]">A</Badge>{a.map((l) => l.name).join(", ") || "미편성"}</p>
-                    <p className="mt-1 truncate"><Badge variant="teamB" className="mr-1 h-4 px-1 text-[10px]">B</Badge>{b.map((l) => l.name).join(", ") || "미편성"}</p>
+                    <p className="truncate"><Badge variant="teamA" className="mr-1 h-4 px-1 text-[10px]">{opponent ? "우리" : "A"}</Badge>{a.map((l) => l.name).join(", ") || "미편성"}</p>
+                    {opponent ? (
+                      <p className="mt-1 truncate"><Badge variant="teamB" className="mr-1 h-4 px-1 text-[10px]">상대</Badge>{opponent}</p>
+                    ) : (
+                      <p className="mt-1 truncate"><Badge variant="teamB" className="mr-1 h-4 px-1 text-[10px]">B</Badge>{b.map((l) => l.name).join(", ") || "미편성"}</p>
+                    )}
                     <p className="text-muted-foreground mt-1 flex items-center gap-2">
                       <span>{game.duration_min}분 · {lineup.length}명</span>
                       {tactic_name && <span className="flex items-center gap-0.5"><ClipboardList className="size-3" />{tactic_name}</span>}

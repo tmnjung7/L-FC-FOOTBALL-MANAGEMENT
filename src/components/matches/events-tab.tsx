@@ -4,11 +4,13 @@ import { EventList } from "@/components/matches/event-list";
 import { GoalDrawer } from "@/components/matches/goal-drawer";
 import type { MatchGamesData } from "@/lib/queries/games";
 
-type Props = { matchId: string; data: MatchGamesData; canScore: boolean };
+type Props = { matchId: string; data: MatchGamesData; canScore: boolean; opponent: string | null };
 
 /** 기록 탭: 쿼터별 득점 이벤트 목록 + "+ 득점" */
-export function EventsTab({ matchId, data, canScore }: Props) {
+export function EventsTab({ matchId, data, canScore, opponent }: Props) {
   const { games } = data;
+  const labelA = opponent ? "우리" : "A팀";
+  const labelB = opponent ? opponent : "B팀";
   const total = games.reduce((n, g) => n + g.events.length, 0);
   return (
     <div className="flex flex-col gap-3">
@@ -19,6 +21,7 @@ export function EventsTab({ matchId, data, canScore }: Props) {
             <GoalDrawer
               matchId={matchId}
               games={games}
+              opponent={opponent}
               trigger={
                 <Button size="sm">
                   <Plus /> 득점
@@ -39,7 +42,7 @@ export function EventsTab({ matchId, data, canScore }: Props) {
                 <span className="text-team-a">{game.team_a_score}</span> : <span className="text-team-b">{game.team_b_score}</span>
               </span>
             </h3>
-            <EventList matchId={matchId} gameId={game.id} events={events} canScore={canScore} />
+            <EventList matchId={matchId} gameId={game.id} events={events} canScore={canScore} labelA={labelA} labelB={labelB} />
           </section>
         ))
       )}

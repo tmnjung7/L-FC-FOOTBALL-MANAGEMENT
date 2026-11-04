@@ -16,7 +16,8 @@ import { getViewer } from "@/lib/auth";
 import { formatDate, formatTime } from "@/lib/date";
 import { getTeamSettings } from "@/lib/queries/home";
 import { getMatchGames } from "@/lib/queries/games";
-import { getMatchDetail, getRecentVenues } from "@/lib/queries/matches";
+import { getMatchDetail, getRecentOpponents, getRecentVenues } from "@/lib/queries/matches";
+import { teamLabel } from "@/lib/match-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const [{ id }, { tab }] = await Promise.all([params, searchParams]);
   const active: MatchTab = tab === "games" || tab === "events" ? tab : "attendance";
 
-  const [viewer, detail, settings, venues] = await Promise.all([getViewer(), getMatchDetail(id), getTeamSettings(), getRecentVenues()]);
+  const [viewer, detail, settings, venues, opponents] = await Promise.all([getViewer(), getMatchDetail(id), getTeamSettings(), getRecentVenues(), getRecentOpponents()]);
   if (!detail) notFound();
   const { match, players, attendance } = detail;
 
@@ -50,7 +51,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
         description={`${match.start_time ? formatTime(match.start_time) + " · " : ""}${match.venue ?? "장소 미정"}`}
         action={
           <div className="flex items-center gap-1">
-            {viewer.canScore && <MatchActions match={match} gameCount={gameCount} recentVenues={venues} />}
+            {viewer.canScore && <MatchActions match={match} gameCount={gameCount} recentVenues={venues} recentOpponents={opponents} />}
             <Button asChild variant="ghost" size="icon" aria-label="모임 목록으로">
               <Link href="/matches"><ArrowLeft className="size-5" /></Link>
             </Button>
@@ -61,12 +62,13 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <Badge variant={STATUS_VARIANT[match.status]}>{STATUS_LABEL[match.status]}</Badge>
           <Badge variant="outline">{match.format}</Badge>
+          <Badge variant={match.opponent ? "teamB" : "secondary"}>{match.opponent ? `vs ${match.opponent}` : "자체전"}</Badge>
           {match.start_time && <span className="text-muted-foreground flex items-center gap-1 text-xs"><Clock className="size-3" />{formatTime(match.start_time)}</span>}
           {match.venue && <span className="text-muted-foreground flex items-center gap-1 text-xs"><MapPin className="size-3" />{match.venue}</span>}
         </div>
         {match.notes && <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm whitespace-pre-wrap">{match.notes}</p>}
 
-        <RecordCta matchId={id} games={gamesData.games} canScore={viewer.canScore} attendeeCount={gamesData.attendees.length} status={match.status} />
+        <RecordCta matchId={id} games={gamesData.games} canScore={viewer.canScore} attendeeCount={gamesData.attendees.length} status={match.status} labelA={teamLabel(match, "A")} labelB={teamLabel(match, "B")} />
 
         <MatchTabs matchId={id} active={active} counts={{ attendance: match.status === "scheduled" && !attendance.some((a) => a.status) ? attendance.filter((a) => a.rsvp === "yes").length : attendance.filter((a) => a.status === "present" || a.status === "late").length, games: gameCount, events: goalCount }} />
 
@@ -76,8 +78,8 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
           ) : (
             <AttendanceView match={match} players={players} attendance={attendance} myPlayerId={viewer.player?.id ?? null} />
           ))}
-        {active === "games" && <GamesTab matchId={id} data={gamesData} canScore={viewer.canScore} />}
-        {active === "events" && <EventsTab matchId={id} data={gamesData} canScore={viewer.canScore} />}
+        {active === "games" && <GamesTab matchId={id} data={gamesData} canScore={viewer.canScore} opponent={match.opponent} />}
+        {active === "events" && <EventsTab matchId={id} data={gamesData} canScore={viewer.canScore} opponent={match.opponent} />}
       </div>
     </>
   );

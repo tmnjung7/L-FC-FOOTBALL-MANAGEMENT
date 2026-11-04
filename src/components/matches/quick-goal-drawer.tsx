@@ -79,9 +79,11 @@ export function QuickGoalDrawer({ matchId, gameId, team, lineup, getMinute, trig
                   ))}
                 </div>
               )}
-              <button type="button" onClick={() => setOwnGoal((v) => !v)} className={cn("text-muted-foreground self-center text-xs underline-offset-4 hover:underline", ownGoal && "text-destructive font-semibold")}>
-                {ownGoal ? "자책골 취소 (우리 팀 득점으로)" : "상대 선수 자책골인가요?"}
-              </button>
+              {lineup.some((l) => l.team !== team) && (
+                <button type="button" onClick={() => setOwnGoal((v) => !v)} className={cn("text-muted-foreground self-center text-xs underline-offset-4 hover:underline", ownGoal && "text-destructive font-semibold")}>
+                  {ownGoal ? "자책골 취소 (우리 팀 득점으로)" : "상대 선수 자책골인가요?"}
+                </button>
+              )}
             </div>
             <DrawerFooter>
               <DrawerClose asChild><Button variant="ghost">취소</Button></DrawerClose>

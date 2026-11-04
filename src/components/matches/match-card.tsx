@@ -3,6 +3,7 @@ import { ChevronRight, Clock, MapPin, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatTime, relativeDays } from "@/lib/date";
 import type { MatchSummaryRow } from "@/types/database";
+import { resultLabel } from "@/lib/match-labels";
 
 const STATUS: Record<MatchSummaryRow["status"], { label: string; variant: "default" | "muted" | "destructive" }> = {
   scheduled: { label: "예정", variant: "default" },
@@ -21,6 +22,7 @@ export function MatchCard({ m }: { m: MatchSummaryRow }) {
             <p className="font-semibold">{formatDate(m.match_date)}</p>
             <Badge variant={st.variant} className="h-5">{st.label}</Badge>
             <Badge variant="outline" className="h-5">{m.format}</Badge>
+            {m.opponent && <Badge variant="teamB" className="h-5 max-w-28 truncate">vs {m.opponent}</Badge>}
             {isUpcoming && <span className="text-muted-foreground text-xs">{relativeDays(m.match_date)}</span>}
           </div>
           <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
@@ -32,7 +34,7 @@ export function MatchCard({ m }: { m: MatchSummaryRow }) {
             </span>
             {m.status === "done" && (
               <span>
-                {m.game_count}쿼터 · A {m.team_a_wins}승 {m.draws}무 {m.team_b_wins}패
+                {m.game_count}쿼터 · {resultLabel(m)}
               </span>
             )}
           </div>

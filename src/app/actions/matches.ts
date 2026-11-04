@@ -12,6 +12,8 @@ export type MatchInput = {
   venue: string | null;
   format: MatchFormat;
   notes: string | null;
+  /** 상대팀 이름 (null = 자체전) */
+  opponent: string | null;
 };
 
 export type ActionResult = { ok: true; id?: string; count?: number } | { error: string };
@@ -23,6 +25,7 @@ function validate(input: Omit<MatchInput, "match_date">): string | null {
   if (input.start_time && !TIME_RE.test(input.start_time)) return "시간 형식이 올바르지 않습니다.";
   if (input.format !== "5v5" && input.format !== "6v6") return "형식은 5v5 또는 6v6 이어야 합니다.";
   if (input.venue && input.venue.length > 60) return "장소는 60자 이내로 입력해 주세요.";
+  if (input.opponent && input.opponent.trim().length > 40) return "상대팀 이름은 40자 이내로 입력해 주세요.";
   return null;
 }
 
@@ -54,6 +57,7 @@ export async function createMatches(dates: string[], input: Omit<MatchInput, "ma
     venue: input.venue?.trim() || null,
     format: input.format,
     notes: input.notes?.trim() || null,
+    opponent: input.opponent?.trim() || null,
     status: "scheduled" as MatchStatus,
     created_by: viewer.user?.id ?? null,
   }));
@@ -80,6 +84,7 @@ export async function updateMatch(id: string, input: MatchInput): Promise<Action
       venue: input.venue?.trim() || null,
       format: input.format,
       notes: input.notes?.trim() || null,
+      opponent: input.opponent?.trim() || null,
     })
     .eq("id", id);
   if (error) return { error: friendly(error.message) };

@@ -27,6 +27,18 @@ export async function getRecentVenues(limit = 5): Promise<string[]> {
   return seen;
 }
 
+/** 최근 상대팀 이름 (자동완성) */
+export async function getRecentOpponents(limit = 8): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("matches").select("opponent").not("opponent", "is", null).order("match_date", { ascending: false }).limit(60);
+  const seen: string[] = [];
+  for (const r of data ?? []) {
+    if (r.opponent && !seen.includes(r.opponent)) seen.push(r.opponent);
+    if (seen.length >= limit) break;
+  }
+  return seen;
+}
+
 export type MatchDetail = {
   match: MatchRow;
   players: PlayerRow[]; // 활성 선수 + 출석 행이 있는 비활성 선수

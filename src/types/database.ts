@@ -56,6 +56,8 @@ export type MatchRow = {
   format: MatchFormat;
   status: MatchStatus;
   notes: string | null;
+  /** 상대팀 이름. null = 자체전(A팀 vs B팀). 있으면 A = 우리, B = 상대 */
+  opponent: string | null;
   created_by: string | null;
   created_at: string;
 };
@@ -83,7 +85,8 @@ export type EventRow = {
   id: string;
   game_id: string;
   minute: number | null;
-  scorer_id: string;
+  /** 실점(상대 득점)은 null */
+  scorer_id: string | null;
   assist_id: string | null;
   team: TeamSide;
   is_own_goal: boolean;
@@ -203,6 +206,9 @@ export type MatchSummaryRow = {
   quarters_by_player: { player_id: string; name: string; quarters: number }[];
   rsvp_yes_count: number;
   rsvp_no_count: number;
+  opponent: string | null;
+  team_a_goals: number;
+  team_b_goals: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -239,7 +245,7 @@ export type Database = {
       };
       matches: {
         Row: MatchRow;
-        Insert: WithDefaults<MatchRow, "id" | "start_time" | "venue" | "format" | "status" | "notes" | "created_by" | "created_at">;
+        Insert: WithDefaults<MatchRow, "id" | "start_time" | "venue" | "format" | "status" | "notes" | "opponent" | "created_by" | "created_at">;
         Update: Partial<MatchRow>;
         Relationships: [];
       };
@@ -263,7 +269,7 @@ export type Database = {
       };
       events: {
         Row: EventRow;
-        Insert: WithDefaults<EventRow, "id" | "minute" | "assist_id" | "is_own_goal" | "created_at">;
+        Insert: WithDefaults<EventRow, "id" | "minute" | "scorer_id" | "assist_id" | "is_own_goal" | "created_at">;
         Update: Partial<EventRow>;
         Relationships: [
           Rel<"events_game_id_fkey", "game_id", "games">,

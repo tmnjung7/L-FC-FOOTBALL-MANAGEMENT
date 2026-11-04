@@ -94,6 +94,17 @@ await db.exec(`set role authenticated; select set_config('request.jwt.claims', '
 console.log("is_scorer():", (await q(`select is_scorer()`))[0], "is_admin():", (await q(`select is_admin()`))[0]);
 await db.exec(`insert into matches (match_date, status) values ('2026-12-25', 'scheduled')`);
 console.log("scorer match insert OK ✔");
+// 0005: 상대팀 경기 — 실점(득점자 없음) 허용, 자체전에서는 불가
+await db.exec(`insert into matches (match_date, status, opponent) values ('2026-12-26', 'done', 'FC 테스트')`);
+const ext = (await q(`select id from matches where opponent='FC 테스트'`))[0].id;
+await db.exec(`insert into games (match_id, game_number) values ('${ext}', 1)`);
+const extGame = (await q(`select id from games where match_id='${ext}'`))[0].id;
+await db.exec(`insert into events (game_id, team, scorer_id) values ('${extGame}', 'B', null)`);
+console.log("conceded goal without scorer OK ✔");
+const internalGame = (await q(`select g.id from games g join matches m on m.id=g.match_id where m.opponent is null limit 1`))[0].id;
+try { await db.exec(`insert into events (game_id, team, scorer_id) values ('${internalGame}', 'A', null)`); console.log("BAD: internal goal without scorer allowed"); failed = true; }
+catch (e) { console.log("internal goal without scorer blocked ✔", e.message.split("\n")[0]); }
+console.log("summary opponent:", (await q(`select opponent, team_a_goals, team_b_goals from v_match_summary where match_id='${ext}'`))[0]);
 try { await db.exec(`insert into players (name) values ('기록원이만든선수')`); console.log("BAD: scorer player insert allowed"); failed = true; }
 catch (e) { console.log("scorer player insert blocked ✔", e.message.split("\n")[0]); }
 try { await q(`select public.set_user_role('lfc3@lfc.team', 'admin')`); console.log("BAD: set_user_role callable by app user"); failed = true; }

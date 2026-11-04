@@ -41,6 +41,14 @@ export const getMissingMigrations = cache(async (): Promise<MigrationStatus[]> =
         return !error || !/rsvp/i.test(error.message);
       },
     },
+    {
+      file: "0005_opponent.sql",
+      label: "상대팀 경기 모드",
+      test: async () => {
+        const { error } = await supabase.from("matches").select("opponent").limit(1);
+        return !error || !/opponent/i.test(error.message);
+      },
+    },
   ];
   const results = await Promise.all(checks.map(async (c) => ({ file: c.file, label: c.label, applied: await c.test().catch(() => true) })));
   return results.filter((r) => !r.applied);

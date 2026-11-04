@@ -8,7 +8,7 @@ import { MatchFormDrawer } from "@/components/matches/match-form-drawer";
 import { getViewer } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getTeamSettings } from "@/lib/queries/home";
-import { getMatchList, getRecentVenues } from "@/lib/queries/matches";
+import { getMatchList, getRecentOpponents, getRecentVenues } from "@/lib/queries/matches";
 
 export const metadata: Metadata = { title: "경기" };
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export default async function MatchesPage() {
     );
   }
 
-  const [viewer, { upcoming, past }, settings, venues] = await Promise.all([getViewer(), getMatchList(), getTeamSettings(), getRecentVenues()]);
+  const [viewer, { upcoming, past }, settings, venues, opponents] = await Promise.all([getViewer(), getMatchList(), getTeamSettings(), getRecentVenues(), getRecentOpponents()]);
 
   return (
     <>
@@ -35,6 +35,7 @@ export default async function MatchesPage() {
             <MatchFormDrawer
               defaultFormat={settings?.default_format ?? "6v6"}
               recentVenues={venues}
+              recentOpponents={opponents}
               trigger={
                 <Button size="sm">
                   <CalendarPlus /> 일정 등록
