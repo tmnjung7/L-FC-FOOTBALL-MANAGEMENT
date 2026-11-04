@@ -11,6 +11,7 @@ import { EventsTab } from "@/components/matches/events-tab";
 import { GamesTab } from "@/components/matches/games-tab";
 import { MatchActions } from "@/components/matches/match-actions";
 import { MatchTabs, type MatchTab } from "@/components/matches/match-tabs";
+import { RecordCta } from "@/components/matches/record-cta";
 import { getViewer } from "@/lib/auth";
 import { formatDate, formatTime } from "@/lib/date";
 import { getTeamSettings } from "@/lib/queries/home";
@@ -64,6 +65,8 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
           {match.venue && <span className="text-muted-foreground flex items-center gap-1 text-xs"><MapPin className="size-3" />{match.venue}</span>}
         </div>
         {match.notes && <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm whitespace-pre-wrap">{match.notes}</p>}
+
+        <RecordCta matchId={id} games={gamesData.games} canScore={viewer.canScore} attendeeCount={gamesData.attendees.length} status={match.status} />
 
         <MatchTabs matchId={id} active={active} counts={{ attendance: match.status === "scheduled" && !attendance.some((a) => a.status) ? attendance.filter((a) => a.rsvp === "yes").length : attendance.filter((a) => a.status === "present" || a.status === "late").length, games: gameCount, events: goalCount }} />
 

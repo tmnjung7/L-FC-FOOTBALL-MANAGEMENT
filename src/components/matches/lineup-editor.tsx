@@ -155,11 +155,11 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-xs">
-          {pending ? "저장 중…" : dirty ? "변경됨 (자동 저장)" : "저장됨"} · 탭: 휴식 → A → B → 휴식
+          {pending ? "저장 중…" : dirty ? "변경됨 (자동 저장)" : "자동 저장됨"}
         </p>
         <div className="flex gap-1">
           <Button type="button" variant="outline" size="sm" onClick={autoFill} disabled={pending || attendees.length === 0}>
-            <Shuffle /> 자동
+            <Shuffle /> 자동 편성
           </Button>
           {hasPrevious && (
             <Button type="button" variant="outline" size="sm" onClick={copyPrev} disabled={pending}>
@@ -175,7 +175,9 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
       </div>
 
       <div className="rounded-xl border p-2">
-        <p className="text-muted-foreground mb-1 text-xs font-semibold">휴식 {rest.length}명 {attendees.length === 0 && "· 출석 탭에서 참석자를 먼저 체크하세요"}</p>
+        <p className="text-muted-foreground mb-1 text-xs font-semibold">
+          휴식 {rest.length}명 {attendees.length === 0 ? "· 출석 탭에서 참석자(또는 투표 참석)를 먼저 체크하세요" : "· 이름을 탭: 한 번 → A팀, 두 번 → B팀, 세 번 → 휴식"}
+        </p>
         <div className="flex flex-wrap gap-1.5">
           {rest.map((p) => (
             <button

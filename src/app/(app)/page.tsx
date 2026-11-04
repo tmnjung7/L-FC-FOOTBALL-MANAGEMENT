@@ -7,6 +7,8 @@ import { RatingReminder } from "@/components/home/rating-reminder";
 import { SetupNotice } from "@/components/home/setup-notice";
 import { PickNameCard } from "@/components/home/pick-name-card";
 import { NoRoleNotice } from "@/components/auth/no-role-notice";
+import { DbUpdateNotice } from "@/components/auth/db-update-notice";
+import { getMissingMigrations } from "@/lib/supabase/migrations-check";
 import Link from "next/link";
 import { KeyRound } from "lucide-react";
 import { getViewer } from "@/lib/auth";
@@ -28,7 +30,7 @@ export default async function HomePage() {
     );
   }
 
-  const [viewer, settings, recent, leaders] = await Promise.all([getViewer(), getTeamSettings(), getRecentResults(3), getMonthLeaders()]);
+  const [viewer, settings, recent, leaders, missing] = await Promise.all([getViewer(), getTeamSettings(), getRecentResults(3), getMonthLeaders(), getMissingMigrations()]);
   const [next, pending] = await Promise.all([
     getNextMatch(viewer.player?.id ?? null),
     getPendingRatings(viewer.player?.id ?? null, settings),
@@ -64,6 +66,7 @@ export default async function HomePage() {
         }
       />
       <div className="flex flex-col gap-4 py-4">
+        {viewer.user && <DbUpdateNotice missing={missing} />}
         {viewer.user && !viewer.role && <NoRoleNotice email={viewer.user.email ?? ""} />}
         {!viewer.player && <PickNameCard />}
         <RatingReminder pending={pending} />

@@ -5,6 +5,8 @@ import { LoginForm } from "@/components/auth/login-form";
 import { isSupabaseConfigured } from "@/lib/env";
 import { checkSupabaseHealth } from "@/lib/supabase/health";
 import { HealthNotice } from "@/components/auth/health-notice";
+import { DbUpdateNotice } from "@/components/auth/db-update-notice";
+import { getMissingMigrations } from "@/lib/supabase/migrations-check";
 
 export const metadata: Metadata = { title: "로그인" };
 export const dynamic = "force-dynamic";
@@ -15,7 +17,7 @@ export default async function LoginPage({ searchParams }: Props) {
   const { next, error } = await searchParams;
   // 외부 주소로 보내지 않도록 앱 안 경로만 허용
   const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
-  const health = await checkSupabaseHealth();
+  const [health, missing] = await Promise.all([checkSupabaseHealth(), getMissingMigrations()]);
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
@@ -42,6 +44,7 @@ export default async function LoginPage({ searchParams }: Props) {
               )}
               <LoginForm next={safeNext} />
               <HealthNotice h={health} />
+              {missing.length > 0 && <div className="mt-4"><DbUpdateNotice missing={missing} /></div>}
             </>
           )}
         </CardContent>

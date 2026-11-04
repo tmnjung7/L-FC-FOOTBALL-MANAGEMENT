@@ -47,7 +47,7 @@ export function GamesTab({ matchId, data, canScore }: Props) {
                       {tactic_name && <span className="flex items-center gap-0.5"><ClipboardList className="size-3" />{tactic_name}</span>}
                     </p>
                   </div>
-                  <ChevronRight className="text-muted-foreground size-5 shrink-0" />
+                  <span className="text-primary flex shrink-0 items-center text-xs font-medium">{canScore ? "기록" : "보기"}<ChevronRight className="size-4" /></span>
                 </Link>
               </li>
             );

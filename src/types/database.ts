@@ -326,6 +326,8 @@ export type Database = {
     };
     Functions: {
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      is_scorer: { Args: Record<string, never>; Returns: boolean };
+      default_role_for_email: { Args: { p_email: string }; Returns: string | null };
       current_player_id: { Args: Record<string, never>; Returns: string | null };
       fn_player_season_stats: {
         Args: { p_from?: string | null; p_to?: string | null };

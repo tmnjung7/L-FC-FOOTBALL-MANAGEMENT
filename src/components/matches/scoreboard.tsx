@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pause, Play, RotateCcw, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GoalDrawer } from "@/components/matches/goal-drawer";
+import { QuickGoalDrawer } from "@/components/matches/quick-goal-drawer";
 import type { GameFull } from "@/lib/queries/games";
 import { cn } from "@/lib/utils";
 
-type Props = { matchId: string; current: GameFull; games: GameFull[]; canScore: boolean };
+type Props = { matchId: string; current: GameFull; games?: GameFull[]; canScore: boolean };
 
 type TimerState = { running: boolean; endAt: number | null; remainingMs: number };
 
@@ -66,6 +66,12 @@ export function Scoreboard({ matchId, current, games, canScore }: Props) {
   function reset() { fired.current = false; save({ running: false, endAt: null, remainingMs: total }); }
 
   const ended = remaining <= 0;
+  /** 경과 분 (타이머 기준). 타이머를 안 썼으면 null */
+  const getMinute = () => {
+    const elapsed = total - Math.max(remaining, 0);
+    if (!t.running && t.remainingMs === total) return null;
+    return Math.min(game.duration_min, Math.max(0, Math.ceil(elapsed / 60_000)));
+  };
 
   return (
     <div className="bg-card rounded-2xl border p-4 shadow-sm">
@@ -88,15 +94,15 @@ export function Scoreboard({ matchId, current, games, canScore }: Props) {
       {canScore && (
         <>
           <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-            <GoalDrawer
+            <QuickGoalDrawer
               matchId={matchId}
-              games={games}
-              defaultGameId={game.id}
-              presetTeam="A"
-              lockGame
+              gameId={game.id}
+              team="A"
+              lineup={current.lineup}
+              getMinute={getMinute}
               trigger={
-                <Button size="lg" className="bg-team-a hover:bg-team-a/90 h-14 w-full text-lg">
-                  <Target /> 골
+                <Button size="lg" className="bg-team-a hover:bg-team-a/90 h-16 w-full text-xl" disabled={current.lineup.length === 0}>
+                  <Target className="size-6" /> A팀 골!
                 </Button>
               }
             />
@@ -108,19 +114,20 @@ export function Scoreboard({ matchId, current, games, canScore }: Props) {
               )}
               <Button variant="ghost" size="icon" className="size-10" onClick={reset} aria-label="타이머 초기화"><RotateCcw className="size-4" /></Button>
             </div>
-            <GoalDrawer
+            <QuickGoalDrawer
               matchId={matchId}
-              games={games}
-              defaultGameId={game.id}
-              presetTeam="B"
-              lockGame
+              gameId={game.id}
+              team="B"
+              lineup={current.lineup}
+              getMinute={getMinute}
               trigger={
-                <Button size="lg" className="bg-team-b hover:bg-team-b/90 h-14 w-full text-lg">
-                  <Target /> 골
+                <Button size="lg" className="bg-team-b hover:bg-team-b/90 h-16 w-full text-xl" disabled={current.lineup.length === 0}>
+                  <Target className="size-6" /> B팀 골!
                 </Button>
               }
             />
           </div>
+          {current.lineup.length === 0 && <p className="text-muted-foreground mt-2 text-center text-xs">골 버튼은 편성(①)을 먼저 하면 켜집니다</p>}
           {ended && <p className="text-destructive mt-2 text-center text-sm font-semibold">쿼터 종료! 아래 &lsquo;다음 쿼터&rsquo;로 편성을 복사해 바로 시작하세요.</p>}
         </>
       )}

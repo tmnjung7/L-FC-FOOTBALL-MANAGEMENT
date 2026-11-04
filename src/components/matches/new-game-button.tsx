@@ -16,6 +16,7 @@ export function NewGameButton({ matchId, hasPrevious, size = "sm", label }: Prop
   return (
     <Button
       size={size}
+      className={size === "lg" ? "h-14 text-base" : undefined}
       disabled={pending}
       onClick={() =>
         startTransition(async () => {

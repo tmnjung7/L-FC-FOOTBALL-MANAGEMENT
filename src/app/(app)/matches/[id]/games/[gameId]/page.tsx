@@ -43,6 +43,64 @@ export default async function GamePage({ params }: Props) {
   const next = data.games[idx + 1];
   const perTeam = match.format === "5v5" ? 5 : 6;
   const isLast = idx === data.games.length - 1;
+  const lineupEmpty = current.lineup.length === 0;
+
+  const lineupSection = (
+    <section className={lineupEmpty && viewer.canScore ? "ring-primary/40 rounded-xl ring-2 ring-offset-2" : undefined}>
+      <h3 className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold">
+        <span className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-full text-xs">1</span>
+        편성 {current.lineup.length}명
+        {lineupEmpty && viewer.canScore && <span className="text-primary text-xs font-normal">← 먼저 여기서 A팀/B팀을 정하세요</span>}
+      </h3>
+      {viewer.canScore ? (
+        <LineupEditor
+          matchId={matchId}
+          gameId={gameId}
+          attendees={data.attendees}
+          lineup={current.lineup}
+          perTeam={perTeam}
+          hasPrevious={!!prev}
+          quartersByPlayer={data.quartersByPlayer}
+        />
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {(["A", "B"] as const).map((team) => (
+            <div key={team} className="bg-card rounded-xl border p-2">
+              <Badge variant={team === "A" ? "teamA" : "teamB"} className="mb-1">{team}팀</Badge>
+              <ul className="text-sm">
+                {current.lineup.filter((l) => l.team === team).map((l) => (
+                  <li key={l.id} className="flex justify-between py-0.5">
+                    <span>{l.name}</span>
+                    <span className="text-muted-foreground text-xs">{l.position ?? ""}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
+  const scoreSection = (
+    <div className="flex flex-col gap-4">
+      <h3 className="flex items-center gap-2 px-1 text-sm font-semibold">
+        <span className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-full text-xs">2</span>
+        타이머 시작 → 골 버튼
+      </h3>
+      <Scoreboard matchId={matchId} current={current} canScore={viewer.canScore} />
+      {viewer.canScore && isLast && (
+        <NewGameButton matchId={matchId} hasPrevious size="lg" label={`다음 쿼터 (Q${current.game.game_number + 1}) 시작 — 편성 그대로 복사`} />
+      )}
+      <section className="bg-card rounded-xl border px-4 py-2 shadow-sm">
+        <h3 className="flex items-center gap-2 py-1 text-sm font-semibold">
+          <span className="bg-muted text-muted-foreground flex size-6 items-center justify-center rounded-full text-xs">3</span>
+          이 쿼터 득점 {current.events.length}
+        </h3>
+        <EventList matchId={matchId} gameId={gameId} events={current.events} canScore={viewer.canScore} />
+      </section>
+    </div>
+  );
 
   return (
     <>
@@ -63,51 +121,19 @@ export default async function GamePage({ params }: Props) {
           </div>
         }
       />
-      <div className="flex flex-col gap-4 py-3 md:grid md:grid-cols-2 md:items-start">
-        <div className="flex flex-col gap-4">
-          <Scoreboard matchId={matchId} current={current} games={data.games} canScore={viewer.canScore} />
-          {viewer.canScore && isLast && (
-            <NewGameButton matchId={matchId} hasPrevious size="lg" label={`다음 쿼터 (Q${current.game.game_number + 1}) 편성 복사해서 시작`} />
-          )}
-          <section className="bg-card rounded-xl border px-4 py-2 shadow-sm">
-            <h3 className="py-1 text-sm font-semibold">이 쿼터 득점</h3>
-            <EventList matchId={matchId} gameId={gameId} events={current.events} canScore={viewer.canScore} />
-          </section>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <section>
-            <h3 className="mb-2 px-1 text-sm font-semibold">편성 {current.lineup.length}명</h3>
-            {viewer.canScore ? (
-              <LineupEditor
-                matchId={matchId}
-                gameId={gameId}
-                attendees={data.attendees}
-                lineup={current.lineup}
-                perTeam={perTeam}
-                hasPrevious={!!prev}
-                quartersByPlayer={data.quartersByPlayer}
-              />
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {(["A", "B"] as const).map((team) => (
-                  <div key={team} className="bg-card rounded-xl border p-2">
-                    <Badge variant={team === "A" ? "teamA" : "teamB"} className="mb-1">{team}팀</Badge>
-                    <ul className="text-sm">
-                      {current.lineup.filter((l) => l.team === team).map((l) => (
-                        <li key={l.id} className="flex justify-between py-0.5">
-                          <span>{l.name}</span>
-                          <span className="text-muted-foreground text-xs">{l.position ?? ""}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-          {viewer.canScore && <GameSettings matchId={matchId} game={current.game} tactics={data.tactics} />}
-        </div>
+      <div className="flex flex-col gap-5 py-3 md:grid md:grid-cols-2 md:items-start">
+        {lineupEmpty && viewer.canScore ? (
+          <>
+            <div className="flex flex-col gap-4">{lineupSection}</div>
+            {scoreSection}
+          </>
+        ) : (
+          <>
+            {scoreSection}
+            <div className="flex flex-col gap-4">{lineupSection}</div>
+          </>
+        )}
+        {viewer.canScore && <div className="md:col-span-2"><GameSettings matchId={matchId} game={current.game} tactics={data.tactics} /></div>}
       </div>
     </>
   );

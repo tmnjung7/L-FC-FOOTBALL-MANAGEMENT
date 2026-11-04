@@ -6,13 +6,19 @@ import { createClient } from "@/lib/supabase/server";
 
 export type RsvpStatus = "yes" | "no";
 
+function friendlyAttendanceError(message: string): string {
+  if (/rsvp/i.test(message) && /could not find|does not exist|schema cache/i.test(message))
+    return "데이터베이스 업데이트가 필요합니다: supabase/migrations/0004_rsvp.sql 을 Supabase SQL Editor 에서 실행해 주세요.";
+  if (message.includes("row-level security")) return "권한이 없습니다. 예정 모임의 투표만 가능하거나, 대표 계정 로그인이 필요합니다.";
+  return message;
+}
+
 /**
  * 예정 모임에 사전 투표(참석/불참). 홈에서 고른 "내 이름"으로 기록 (RLS 0004 정책).
  * 당일 출석(status)은 건드리지 않는다.
  */
 export async function rsvp(matchId: string, answer: RsvpStatus): Promise<{ ok: true } | { error: string }> {
   const viewer = await getViewer();
-  if (!viewer.user) return { error: "로그인이 필요합니다." };
   if (!viewer.player) return { error: "먼저 홈에서 내 이름을 골라 주세요." };
 
   const supabase = await createClient();
@@ -22,9 +28,7 @@ export async function rsvp(matchId: string, answer: RsvpStatus): Promise<{ ok: t
       { match_id: matchId, player_id: viewer.player.id, rsvp: answer },
       { onConflict: "match_id,player_id" },
     );
-  if (error) {
-    return { error: error.message.includes("row-level security") ? "이 모임은 더 이상 투표를 바꿀 수 없습니다 (당일 출석이 확정됨)." : error.message };
-  }
+  if (error) return { error: friendlyAttendanceError(error.message) };
   revalidatePath("/");
   return { ok: true };
 }
@@ -57,7 +61,7 @@ export async function saveAttendance(matchId: string, rows: AttendanceRowInput[]
 
   if (toUpsert.length > 0) {
     const { error } = await supabase.from("attendance").upsert(toUpsert, { onConflict: "match_id,player_id" });
-    if (error) return { error: error.message.includes("row-level security") ? "권한이 없습니다. 대표 계정으로 로그인해 주세요." : error.message };
+    if (error) return { error: friendlyAttendanceError(error.message) };
   }
   if (toDelete.length > 0) {
     const { error } = await supabase.from("attendance").delete().eq("match_id", matchId).in("player_id", toDelete);
