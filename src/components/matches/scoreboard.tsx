@@ -20,7 +20,7 @@ function fmt(ms: number) {
  * 경기 중 빠른 입력 모드: 큰 스코어보드 + 쿼터 타이머 + 각 팀 "골" 버튼.
  * 타이머는 종료 시각(endAt)을 저장해 두므로 화면이 꺼졌다 켜져도 정확하다. 끝나면 진동.
  */
-export function Scoreboard({ matchId, current, games, canScore }: Props) {
+export function Scoreboard({ matchId, current, canScore }: Props) {
   const { game } = current;
   const total = game.duration_min * 60_000;
   const key = `fm:timer:${game.id}`;
