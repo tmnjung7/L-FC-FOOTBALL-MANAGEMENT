@@ -87,6 +87,17 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
     });
   }
 
+  /** 팀당 GK 1명. 누르면 지정, 이미 GK면 해제, 같은 팀 다른 GK는 자동 해제 */
+  function toggleGk(playerId: string) {
+    update((m) => {
+      const cur = m.get(playerId);
+      if (!cur) return;
+      if (cur.position === "GK") { m.set(playerId, { ...cur, position: null }); return; }
+      for (const [pid, slot] of m) if (slot.team === cur.team && slot.position === "GK") m.set(pid, { ...slot, position: null });
+      m.set(playerId, { ...cur, position: "GK" });
+    });
+  }
+
   function cyclePosition(playerId: string) {
     update((m) => {
       const cur = m.get(playerId);
@@ -127,7 +138,10 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
       <div className={cn("rounded-xl border p-2", team === "A" ? "border-team-a/40 bg-team-a/5" : "border-team-b/40 bg-team-b/5")}>
         <p className={cn("mb-1 flex items-center justify-between text-xs font-bold", team === "A" ? "text-team-a" : "text-team-b")}>
           <span>{external ? "출전" : `${team}팀`}</span>
-          <span className={cn(over && "text-destructive")}>{list.length}/{perTeam}</span>
+          <span className={cn(over && "text-destructive")}>
+            {list.length}/{perTeam}
+            {list.length > 0 && !list.some((p) => slots.get(p.id)?.position === "GK") && <span className="ml-1 font-normal text-amber-600">GK 미지정</span>}
+          </span>
         </p>
         {list.length === 0 ? (
           <p className="text-muted-foreground py-2 text-center text-xs">아래 참석자를 탭해 배정</p>
@@ -140,11 +154,20 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
                 </button>
                 <button
                   type="button"
+                  onClick={() => toggleGk(p.id)}
+                  aria-pressed={slots.get(p.id)?.position === "GK"}
+                  className={cn("h-8 min-w-9 rounded px-1.5 text-xs font-bold", slots.get(p.id)?.position === "GK" ? "bg-amber-400 text-black" : "bg-muted text-muted-foreground")}
+                  title="골키퍼 지정"
+                >
+                  GK
+                </button>
+                <button
+                  type="button"
                   onClick={() => cyclePosition(p.id)}
-                  className="text-muted-foreground bg-muted h-8 min-w-12 rounded px-1.5 text-xs font-semibold"
+                  className="text-muted-foreground bg-muted h-8 min-w-11 rounded px-1.5 text-[11px] font-semibold"
                   title="탭: 포지션 변경"
                 >
-                  {slots.get(p.id)?.position ?? "포지션"}
+                  {slots.get(p.id)?.position && slots.get(p.id)?.position !== "GK" ? slots.get(p.id)?.position : "포지션"}
                 </button>
               </li>
             ))}

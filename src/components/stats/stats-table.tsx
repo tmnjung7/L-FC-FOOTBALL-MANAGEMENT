@@ -6,13 +6,14 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import type { PlayerSeasonStatsRow } from "@/types/database";
 import { cn } from "@/lib/utils";
 
-type Col = { key: keyof PlayerSeasonStatsRow | "points"; label: string; fmt?: (r: PlayerSeasonStatsRow) => string; numeric?: boolean };
+type Col = { key: keyof PlayerSeasonStatsRow | "points" | "gk"; label: string; fmt?: (r: PlayerSeasonStatsRow) => string; numeric?: boolean };
 
 const COLS: Col[] = [
   { key: "name", label: "선수" },
   { key: "matches_played", label: "참석", numeric: true },
   { key: "quarters_played", label: "출전Q", numeric: true },
   { key: "rest_quarters", label: "휴식Q", numeric: true },
+  { key: "gk", label: "GK", numeric: true, fmt: (r) => String(r.positions_played?.GK ?? 0) },
   { key: "goals", label: "골", numeric: true },
   { key: "assists", label: "도움", numeric: true },
   { key: "points", label: "공격P", numeric: true, fmt: (r) => String(r.goals + r.assists) },
@@ -29,6 +30,7 @@ const COLS: Col[] = [
 
 function val(r: PlayerSeasonStatsRow, key: Col["key"]): number | string | null {
   if (key === "points") return r.goals + r.assists;
+  if (key === "gk") return r.positions_played?.GK ?? 0;
   const v = r[key];
   if (v == null) return null;
   if (typeof v === "object") return null;

@@ -1,7 +1,7 @@
 import type { PlayerSeasonStatsRow } from "@/types/database";
 import { cn } from "@/lib/utils";
 
-export type Metric = "goals" | "assists" | "points" | "rating" | "attendance" | "late" | "noshow";
+export type Metric = "goals" | "assists" | "points" | "rating" | "attendance" | "late" | "noshow" | "gk";
 
 export const METRICS: { key: Metric; label: string; unit: string; desc?: string }[] = [
   { key: "goals", label: "득점", unit: "골" },
@@ -11,6 +11,7 @@ export const METRICS: { key: Metric; label: string; unit: string; desc?: string 
   { key: "attendance", label: "출석률", unit: "%", desc: "사전통보 제외" },
   { key: "late", label: "지각", unit: "회" },
   { key: "noshow", label: "노쇼", unit: "회", desc: "투표 참석 후 결석" },
+  { key: "gk", label: "골키퍼", unit: "쿼터", desc: "GK 로 뛴 쿼터 수" },
 ];
 
 export function metricValue(r: PlayerSeasonStatsRow, m: Metric): number | null {
@@ -22,13 +23,14 @@ export function metricValue(r: PlayerSeasonStatsRow, m: Metric): number | null {
     case "attendance": return r.attendance_rate != null ? Number(r.attendance_rate) : null;
     case "late": return r.late_count;
     case "noshow": return r.no_show_count;
+    case "gk": return r.positions_played?.GK ?? 0;
   }
 }
 
 export function rankPlayers(rows: PlayerSeasonStatsRow[], m: Metric): { r: PlayerSeasonStatsRow; v: number; rank: number }[] {
   const list = rows
     .map((r) => ({ r, v: metricValue(r, m) }))
-    .filter((x): x is { r: PlayerSeasonStatsRow; v: number } => x.v != null && (m === "late" || m === "noshow" ? x.v > 0 : x.v > 0 || m === "attendance"))
+    .filter((x): x is { r: PlayerSeasonStatsRow; v: number } => x.v != null && (m === "late" || m === "noshow" || m === "gk" ? x.v > 0 : x.v > 0 || m === "attendance"))
     .sort((a, b) => b.v - a.v || b.r.matches_played - a.r.matches_played || a.r.name.localeCompare(b.r.name));
   // 동점은 같은 순위
   let rank = 0, prev: number | null = null;
@@ -48,6 +50,7 @@ function sub(r: PlayerSeasonStatsRow, m: Metric): string {
     case "attendance": return `출석 ${r.present_count + r.late_count} · 결석 ${r.absent_count}`;
     case "late": return `${r.matches_played}회 중`;
     case "noshow": return `투표 후 불참`;
+    case "gk": return `출전 ${r.quarters_played}쿼터 중`;
   }
 }
 

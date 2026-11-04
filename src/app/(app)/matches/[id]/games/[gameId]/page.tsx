@@ -74,7 +74,7 @@ export default async function GamePage({ params }: Props) {
               <ul className="text-sm">
                 {current.lineup.filter((l) => l.team === team).map((l) => (
                   <li key={l.id} className="flex justify-between py-0.5">
-                    <span>{l.name}</span>
+                    <span>{l.position === "GK" ? "🧤 " : ""}{l.name}</span>
                     <span className="text-muted-foreground text-xs">{l.position ?? ""}</span>
                   </li>
                 ))}
@@ -126,6 +126,12 @@ export default async function GamePage({ params }: Props) {
         }
       />
       <div className="flex flex-col gap-5 py-3 md:grid md:grid-cols-2 md:items-start">
+        {!viewer.canScore && (
+          <p className="text-muted-foreground bg-muted rounded-md px-3 py-2 text-xs md:col-span-2">
+            편성 수정·득점 입력·쿼터 추가/삭제는 대표 계정(lfc1·lfc2·lfc3)으로 <Link href="/login" className="text-primary underline-offset-4 hover:underline">로그인</Link>하면 보입니다.
+            {viewer.user ? " (로그인은 됐지만 권한이 없습니다 — 홈의 안내를 확인하세요)" : ""}
+          </p>
+        )}
         {lineupEmpty && viewer.canScore ? (
           <>
             <div className="flex flex-col gap-4">{lineupSection}</div>

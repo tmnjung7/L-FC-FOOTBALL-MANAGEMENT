@@ -28,6 +28,7 @@ export function GamesTab({ matchId, data, canScore, opponent = null }: Props) {
           {games.map(({ game, lineup, tactic_name }) => {
             const a = lineup.filter((l) => l.team === "A");
             const b = lineup.filter((l) => l.team === "B");
+            const names = (list: typeof lineup) => list.map((l) => (l.position === "GK" ? `🧤${l.name}` : l.name)).join(", ");
             return (
               <li key={game.id}>
                 <Link href={`/matches/${matchId}/games/${game.id}`} className="bg-card hover:bg-accent flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm">
@@ -40,11 +41,11 @@ export function GamesTab({ matchId, data, canScore, opponent = null }: Props) {
                     </p>
                   </div>
                   <div className="min-w-0 flex-1 text-xs">
-                    <p className="truncate"><Badge variant="teamA" className="mr-1 h-4 px-1 text-[10px]">{opponent ? "우리" : "A"}</Badge>{a.map((l) => l.name).join(", ") || "미편성"}</p>
+                    <p className="truncate"><Badge variant="teamA" className="mr-1 h-4 px-1 text-[10px]">{opponent ? "우리" : "A"}</Badge>{names(a) || "미편성"}</p>
                     {opponent ? (
                       <p className="mt-1 truncate"><Badge variant="teamB" className="mr-1 h-4 px-1 text-[10px]">상대</Badge>{opponent}</p>
                     ) : (
-                      <p className="mt-1 truncate"><Badge variant="teamB" className="mr-1 h-4 px-1 text-[10px]">B</Badge>{b.map((l) => l.name).join(", ") || "미편성"}</p>
+                      <p className="mt-1 truncate"><Badge variant="teamB" className="mr-1 h-4 px-1 text-[10px]">B</Badge>{names(b) || "미편성"}</p>
                     )}
                     <p className="text-muted-foreground mt-1 flex items-center gap-2">
                       <span>{game.duration_min}분 · {lineup.length}명</span>
