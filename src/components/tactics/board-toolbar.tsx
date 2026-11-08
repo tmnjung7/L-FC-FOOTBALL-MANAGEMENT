@@ -3,7 +3,7 @@
 import { useState, useTransition, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import type Konva from "konva";
-import { ArrowRight, Download, Eraser, FolderOpen, Grid3X3, LayoutGrid, Magnet, MousePointer2, MoveRight, Redo2, Save, Share2, Square, StickyNote, Trash2, Undo2, UserPlus, Users } from "lucide-react";
+import { ArrowRight, Download, Eraser, FolderOpen, Grid3X3, LayoutGrid, Magnet, MousePointer2, MoveRight, Pencil, Redo2, Save, Share2, Square, StickyNote, Trash2, Undo2, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -156,7 +156,40 @@ export function BoardToolbar({ players, tactics, isAdmin, stageRef }: Props) {
         <ToolBtn onClick={s.undo} label="되돌리기" disabled={s.past.length === 0}><Undo2 /></ToolBtn>
         <ToolBtn onClick={s.redo} label="다시" disabled={s.future.length === 0}><Redo2 /></ToolBtn>
         <ToolBtn onClick={s.removeSelected} label="삭제" disabled={!selected || selMarker?.kind === "ball"}><Trash2 /></ToolBtn>
-        <ToolBtn onClick={renameSelected} label="이름" disabled={!selected || selMarker?.kind === "ball"}><Eraser className="rotate-180" /></ToolBtn>
+        <ToolBtn onClick={renameSelected} label="이름" disabled={!selected || selMarker?.kind === "ball"}><Pencil /></ToolBtn>
+        {/* 지우기: 낙서(화살표·영역·메모)만 / 전부 */}
+        <Drawer>
+          <DrawerTrigger asChild>
+            <button type="button" aria-label="지우기" title="지우기" className="bg-muted text-foreground hover:bg-accent flex h-11 min-w-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md px-1.5 text-[10px] [&_svg]:size-5">
+              <Eraser />
+              <span className="leading-none">지우기</span>
+            </button>
+          </DrawerTrigger>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>지우기</DrawerTitle>
+              <DrawerDescription>되돌리기로 복구할 수 있습니다.</DrawerDescription>
+            </DrawerHeader>
+            <div className="flex flex-col gap-2 px-4 pb-2">
+              <DrawerClose asChild>
+                <Button size="lg" variant="outline" onClick={() => { s.commit((b) => { b.arrows = []; b.zones = []; b.notes = []; }); toast.success("화살표·영역·메모를 지웠습니다"); }}>
+                  화살표·영역·메모만 지우기 (선수는 유지)
+                </Button>
+              </DrawerClose>
+              <DrawerClose asChild>
+                <Button size="lg" variant="outline" onClick={() => { s.commit((b) => { b.markers = b.markers.filter((m) => m.kind !== "them"); }); toast.success("상대 선수를 지웠습니다"); }}>
+                  상대 선수만 지우기
+                </Button>
+              </DrawerClose>
+              <DrawerClose asChild>
+                <Button size="lg" variant="destructive" onClick={() => { s.reset(); toast.success("코트를 비웠습니다"); }}>
+                  전부 지우기 (코트 비우기)
+                </Button>
+              </DrawerClose>
+            </div>
+            <DrawerFooter><DrawerClose asChild><Button variant="ghost">닫기</Button></DrawerClose></DrawerFooter>
+          </DrawerContent>
+        </Drawer>
         <span className="bg-border mx-0.5 w-px shrink-0" />
         <ToolBtn active={s.showGrid} onClick={s.toggleGrid} label="격자"><Grid3X3 /></ToolBtn>
         <ToolBtn active={s.snap} onClick={s.toggleSnap} label="칸맞춤"><Magnet /></ToolBtn>
