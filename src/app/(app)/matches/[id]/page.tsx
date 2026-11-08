@@ -106,7 +106,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
         {active === "report" && report && (
           <>
             <ReportShare d={report} isAdmin={viewer.isAdmin} savedAt={savedReport?.generated_at ?? null} />
-            <ReportView d={report} showRateLink={match.status === "done"} />
+            <ReportView d={report} showRateLink={match.status === "done" && (settings?.rating_enabled ?? true)} isAdmin={viewer.isAdmin} />
             <ReportImageCard d={report} />
           </>
         )}

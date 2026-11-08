@@ -35,7 +35,9 @@ export function buildNarrative(d: ReportData): string[] {
 
   if (d.mvp) {
     const rated = d.topRated[0];
-    out.push(`MVP는 ${d.mvp.votes}표를 받은 ${d.mvp.name}${rated ? `, 평점 1위는 ${rated.name}(${rated.value.toFixed(1)}점)입니다` : "입니다"}.`);
+    const who = d.mvp.byAdmin ? `오늘의 MVP는 ${d.mvp.name}` : `MVP는 ${d.mvp.votes}표를 받은 ${d.mvp.name}`;
+    const keyword = d.playerLines.find((p) => p.isMvp)?.note;
+    out.push(`${who}${keyword ? ` (${keyword})` : ""}${rated && rated.name !== d.mvp.name ? `, 평점 1위는 ${rated.name}(${rated.value.toFixed(1)}점)입니다` : "입니다"}.`);
   } else if (d.topRated.length > 0) {
     const rated = d.topRated[0];
     out.push(`평점 1위는 ${rated.name}(${rated.value.toFixed(1)}점, ${rated.count}명 평가)입니다.`);
@@ -50,5 +52,8 @@ export function buildNarrative(d: ReportData): string[] {
       : `출전은 최다 ${most.name} ${most.quarters}쿼터, 최소 ${least.name} ${least.quarters}쿼터로 ${diff}쿼터 차이가 났습니다. 다음 편성 때 참고하세요.`);
   }
 
-  return out.slice(0, 5);
+  // 대표 총평이 있으면 맨 뒤에 붙인다 (요약 5문장 + 총평)
+  const body = out.slice(0, 5);
+  if (d.memo) body.push(`총평: ${d.memo}`);
+  return body;
 }

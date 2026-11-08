@@ -55,14 +55,25 @@ export function ReportImageCard({ d }: { d: ReportData }) {
       {d.mvp && (
         <div style={{ ...S.section, background: "#fffbeb", borderRadius: 20, border: "3px solid #fcd34d", padding: 28 }}>
           <p style={{ fontSize: 32, color: "#92400e", margin: 0, fontWeight: 700 }}>🏆 오늘의 MVP</p>
-          <p style={{ fontSize: 60, fontWeight: 900, margin: "4px 0 0" }}>{d.mvp.name} <span style={{ fontSize: 32, fontWeight: 500, color: "#6b7280" }}>{d.mvp.votes}표</span></p>
+          <p style={{ fontSize: 60, fontWeight: 900, margin: "4px 0 0" }}>{d.mvp.name} <span style={{ fontSize: 32, fontWeight: 500, color: "#6b7280" }}>{d.mvp.byAdmin ? "대표 선정" : `${d.mvp.votes}표`}</span></p>
         </div>
       )}
 
-      {d.notes.length > 0 && (
+      {d.playerLines.length > 0 && (
         <div style={S.section}>
-          <h2 style={S.h2}>선수별 한마디</h2>
-          {d.notes.slice(0, 12).map((n) => <p key={n.name} style={{ ...S.small, margin: "4px 0" }}><b>{n.name}</b> · {n.note}</p>)}
+          <h2 style={S.h2}>선수별 코멘트</h2>
+          {d.playerLines.slice(0, 16).map((p) => (
+            <p key={p.name} style={{ ...S.small, margin: "6px 0", display: "flex", justifyContent: "space-between", gap: 16 }}>
+              <span><b>{p.isMvp ? "🏆 " : ""}{p.name}</b>{p.note ? <span style={{ color: "#16a34a" }}> · {p.note}</span> : null}</span>
+              <span style={{ color: "#6b7280", whiteSpace: "nowrap" }}>{p.stats}</span>
+            </p>
+          ))}
+        </div>
+      )}
+      {d.memo && (
+        <div style={{ ...S.section, background: "#f0fdf4", borderRadius: 20, border: "3px solid #86efac", padding: 28 }}>
+          <p style={{ fontSize: 30, color: "#166534", margin: "0 0 8px", fontWeight: 700 }}>총평</p>
+          <p style={{ fontSize: 32, lineHeight: 1.55, margin: 0 }}>{d.memo}</p>
         </div>
       )}
 

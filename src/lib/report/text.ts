@@ -15,12 +15,12 @@ export function reportToText(d: ReportData, link?: string): string {
   if (d.topAssists.length) L.push(`🎯 도움: ${d.topAssists.map((s) => `${s.name} ${s.value}`).join(", ")}`);
   if (d.topRated.length) L.push(`⭐ 평점: ${d.topRated.map((s) => `${s.name} ${s.value.toFixed(1)}`).join(", ")} (${d.raterCount}명 평가)`);
   else L.push("⭐ 평점 미입력");
-  if (d.mvp) L.push(`🏆 MVP: ${d.mvp.name} (${d.mvp.votes}표)`);
+  if (d.mvp) L.push(`🏆 MVP: ${d.mvp.name}${d.mvp.byAdmin ? "" : ` (${d.mvp.votes}표)`}`);
   if (d.playTime.length) L.push(`🔁 출전: 최다 ${d.playTime[0].name} ${d.playTime[0].quarters}Q · 최소 ${d.playTime[d.playTime.length - 1].name} ${d.playTime[d.playTime.length - 1].quarters}Q`);
-  if (d.notes.length) {
+  if (d.playerLines.length) {
     L.push("");
-    L.push("📝 선수별 한마디");
-    for (const n of d.notes) L.push(`- ${n.name}: ${n.note}`);
+    L.push("📝 선수별 코멘트");
+    for (const p of d.playerLines) L.push(`- ${p.isMvp ? "🏆 " : ""}${p.name} (${p.stats})${p.note ? `: ${p.note}` : ""}`);
   }
   if (d.comments.length) {
     L.push("");

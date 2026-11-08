@@ -23,7 +23,8 @@
    출석률·지각·결석·노쇼(투표 참석인데 결석) 집계는 status 기준. 사전통보 결석은 출석률 분모에서 제외
 5. 통계: 득점왕·어시스트왕·평균 평점·출석왕·지각왕 랭킹, 표, 차트
 6. 전술 현황판: 풋살 코트(40m×20m) 위 드래그 마커, 포메이션 프리셋, 화살표·영역·메모, 저장
-7. 경기 피드백 보고서: 평점·한 줄 피드백·MVP 투표 → 보고서 자동 생성 → 이미지로 카카오톡 공유
+7. 경기 피드백 보고서: **대표(lfc1·lfc2)가 참석자별 키워드·메모 + MVP 지정 + 총평을 입력**(/matches/[id]/feedback) → 보고서 자동 생성(선수별 코멘트·요약·총평) → 텍스트 복사/이미지로 카카오톡 공유.
+   팀원 평점·투표(/rate)는 보조(team_settings.rating_enabled 로 끌 수 있음). 대표 지정 MVP 가 투표보다 우선. 대표 입력은 match_reports.summary_json.admin_input 에 저장(스키마 변경 없음)
 8. 결산 리포트: 기록은 계속 쌓이고(이력), **월말·분기·연말** 결산 리포트를 자동 생성(`period_reports`). 집계는 `fn_player_season_stats(from, to)` 하나로 통일
 9. 포지션 이력: 쿼터마다 실제 뛴 포지션(`game_players.position`)을 기록해 선수별 "주로 뛴 포지션" 통계 제공.
    **골키퍼는 편성에서 GK 버튼으로 지정(팀당 1명)** → 쿼터 카드 🧤 표시, 통계 "골키퍼 횟수" 랭킹·표 열
@@ -87,13 +88,13 @@ futsal-manager/
    │  ├─ (app)/              # 하단 탭이 있는 화면들 (layout.tsx = AppShell)
    │  │  ├─ page.tsx         # 홈: 다음 모임(참석/불참), 최근 결과, 이달 랭킹, 평점 알림
    │  │  ├─ whoami/          # "내 이름 선택" (쿠키)
-   │  │  ├─ matches/         # 경기 탭: 목록 → [id]?tab=attendance|games|events|report → games/[gameId](점수판), rate(평점·피드백·MVP 입력)
+   │  │  ├─ matches/         # 경기 탭: 목록 → [id]?tab=attendance|games|events|report → games/[gameId](점수판), feedback(대표 피드백 작성, admin), rate(팀원 평점·투표)
    │  │  ├─ players/         # 선수 탭: 목록(+등록 바텀시트) → [id] 상세(시즌 요약·폼 차트·쿼터별 기록)
    │  │  ├─ stats/           # 통계 탭: ?period=year|3m|all|custom&from&to&tab=rank|table|chart&metric= (서버 렌더, 링크 탭)
    │  │  └─ tactics/         # 전술판 탭: 자유 보드 (TacticsBoard → BoardCanvas(react-konva, ssr:false) + BoardToolbar)
    │  ├─ login/              # 대표 로그인 (탭 없음)
    │  ├─ auth/callback, auth/signout
-   │  └─ actions/            # 서버 액션: attendance, identity, players, matches, games, events, feedback(평점·피드백·MVP 일괄 저장), reports(보고서 확정 저장)
+   │  └─ actions/            # 서버 액션: attendance, identity, players, matches, games, events, feedback(팀원 평점·투표), admin-feedback(대표 키워드·MVP·총평), reports(확정 저장)
    ├─ middleware.ts          # Supabase 세션 쿠키 갱신 (로그인 강제 없음)
    ├─ components/
    │  ├─ ui/                 # shadcn/ui 컴포넌트 (button, card, input, label, badge, skeleton, sonner, drawer, switch, native-select)
@@ -104,7 +105,7 @@ futsal-manager/
    │  ├─ matches/            # MatchCard, MatchFormDrawer(+MultiDatePicker), MatchTabs, MatchActions, AttendanceEditor/View,
    │  │                      #   RecordCta(경기 기록하기 버튼), GamesTab, QuarterCountBar, NewGameButton, LineupEditor(external 모드), Scoreboard(타이머),
    │  │                      #   QuickGoalDrawer(2단계 득점), ConcedeDrawer(실점), GoalDrawer(득점 탭 상세), EventList, EventsTab, GameSettings
-   │  ├─ report/             # ReportView(카드), ReportShare(텍스트 복사·이미지·링크·확정 저장), ReportImageCard(1080px 공유 이미지, 인라인 스타일)
+   │  ├─ report/             # ReportView(카드), ReportShare(텍스트 복사·이미지·링크·확정 저장), ReportImageCard(1080px 공유 이미지), AdminFeedbackForm(키워드 토글·MVP·총평)
    │  ├─ stats/              # PeriodFilter, Ranking(+METRICS/rankPlayers), StatsTable(정렬), StatsCharts(Recharts), ShareImageButton(html-to-image)
    │  └─ tactics/            # TacticsBoard, BoardCanvas(코트·마커·화살표·영역·메모, 세로는 Group -90° 회전), BoardToolbar(도구·프리셋·선수·저장·공유), TacticThumbnail(SVG)
    ├─ lib/

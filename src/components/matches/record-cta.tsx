@@ -16,7 +16,7 @@ export function RecordCta({ matchId, games, canScore, attendeeCount, status, lab
   if (status === "done") {
     return (
       <Link href={`/matches/${matchId}?tab=report`} className="bg-primary/5 border-primary/40 hover:bg-primary/10 flex items-center justify-between rounded-xl border px-4 py-3 shadow-sm">
-        <span className="text-sm font-semibold">📋 경기 보고서 보기 · 평점/MVP 입력</span>
+        <span className="text-sm font-semibold">📋 경기 보고서 보기</span>
         <span className="text-lg font-bold tabular-nums"><span className="text-team-a">{games.reduce((n, g) => n + g.game.team_a_score, 0)}</span> : <span className="text-team-b">{games.reduce((n, g) => n + g.game.team_b_score, 0)}</span></span>
       </Link>
     );

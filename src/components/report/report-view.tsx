@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { PencilLine, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,7 @@ function Top3({ title, rows, unit, fmt }: { title: string; rows: ReportData["top
 }
 
 /** 보고서 탭 화면 (카드형). 데이터는 항상 최신 기준으로 자동 생성 */
-export function ReportView({ d, showRateLink }: { d: ReportData; showRateLink: boolean }) {
+export function ReportView({ d, showRateLink, isAdmin = false }: { d: ReportData; showRateLink: boolean; isAdmin?: boolean }) {
   const result = d.opponent ? (d.totalA > d.totalB ? "승" : d.totalA === d.totalB ? "무" : "패") : null;
   return (
     <div className="flex flex-col gap-3">
@@ -48,6 +48,18 @@ export function ReportView({ d, showRateLink }: { d: ReportData; showRateLink: b
           {d.status !== "done" && <p className="text-amber-600 text-xs">아직 &lsquo;완료&rsquo; 처리되지 않은 모임입니다. 완료 처리 후 팀원이 평점을 남길 수 있습니다.</p>}
         </CardContent>
       </Card>
+
+      {/* 대표 피드백 작성 안내 (admin) */}
+      {isAdmin && d.status === "done" && (
+        <Card className={d.playerLines.some((p) => p.note) || d.memo ? undefined : "border-amber-300 bg-amber-50 dark:bg-amber-950/30"}>
+          <CardContent className="flex items-center justify-between gap-3">
+            <p className="text-sm">
+              {d.playerLines.some((p) => p.note) || d.memo ? "참석자별 피드백·MVP·총평이 보고서에 반영되어 있습니다." : "참석자별 키워드·MVP·총평을 적으면 보고서 문장이 채워집니다."}
+            </p>
+            <Button asChild size="sm"><Link href={`/matches/${d.matchId}/feedback`}><PencilLine /> 피드백 작성</Link></Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 요약 문단 */}
       {d.narrative.length > 0 && (
@@ -86,8 +98,8 @@ export function ReportView({ d, showRateLink }: { d: ReportData; showRateLink: b
         <CardContent className="flex items-center justify-between">
           <div>
             <p className="text-muted-foreground text-xs font-semibold">🏆 MVP</p>
-            {d.mvp ? <p className="text-xl font-bold">{d.mvp.name} <span className="text-muted-foreground text-sm font-normal">{d.mvp.votes}표</span></p> : <p className="text-muted-foreground text-sm">투표 없음</p>}
-            {d.mvpVotes.length > 1 && <p className="text-muted-foreground text-xs">{d.mvpVotes.slice(0, 4).map((v) => `${v.name} ${v.votes}`).join(" · ")}</p>}
+            {d.mvp ? <p className="text-xl font-bold">{d.mvp.name} <span className="text-muted-foreground text-sm font-normal">{d.mvp.byAdmin ? "대표 선정" : `${d.mvp.votes}표`}</span></p> : <p className="text-muted-foreground text-sm">아직 없음</p>}
+            {d.mvpVotes.length > 0 && <p className="text-muted-foreground text-xs">팀원 투표: {d.mvpVotes.slice(0, 4).map((v) => `${v.name} ${v.votes}`).join(" · ")}</p>}
           </div>
           {showRateLink && (
             <Button asChild size="sm"><Link href={`/matches/${d.matchId}/rate`}><Star /> 평점·MVP 입력</Link></Button>
@@ -105,17 +117,28 @@ export function ReportView({ d, showRateLink }: { d: ReportData; showRateLink: b
         </Card>
       )}
 
-      {/* 선수별 비고 */}
+      {/* 선수별 코멘트 (대표 키워드 + 기록) */}
       <Card>
-        <CardHeader><CardTitle className="text-base">선수별 한마디 <span className="text-muted-foreground text-xs font-normal">(출석 탭 비고)</span></CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">선수별 코멘트</CardTitle></CardHeader>
         <CardContent>
-          {d.notes.length === 0 ? <p className="text-muted-foreground text-sm">아직 없음 — 대표가 출석 탭에서 선수별 비고(키워드)를 적으면 여기에 나옵니다.</p> : (
-            <ul className="space-y-1 text-sm">{d.notes.map((n) => <li key={n.name}><b>{n.name}</b> <span className="text-muted-foreground">· {n.note}</span></li>)}</ul>
+          {d.playerLines.length === 0 ? <p className="text-muted-foreground text-sm">출석 체크된 참석자가 없습니다.</p> : (
+            <ul className="divide-y text-sm">
+              {d.playerLines.map((p) => (
+                <li key={p.name} className="flex flex-col py-1.5">
+                  <span className="flex items-center justify-between">
+                    <b>{p.isMvp ? "🏆 " : ""}{p.name}</b>
+                    <span className="text-muted-foreground text-xs">{p.stats}</span>
+                  </span>
+                  {p.note ? <span className="text-primary text-sm">{p.note}</span> : <span className="text-muted-foreground text-xs">{isAdmin ? "피드백 미입력" : ""}</span>}
+                </li>
+              ))}
+            </ul>
           )}
         </CardContent>
       </Card>
 
       {/* 피드백 */}
+      {(d.comments.length > 0 || showRateLink) && (
       <Card>
         <CardHeader><CardTitle className="text-base">팀원 피드백 <span className="text-muted-foreground text-xs font-normal">{d.feedbackCount}명 참여</span></CardTitle></CardHeader>
         <CardContent>
@@ -124,6 +147,7 @@ export function ReportView({ d, showRateLink }: { d: ReportData; showRateLink: b
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

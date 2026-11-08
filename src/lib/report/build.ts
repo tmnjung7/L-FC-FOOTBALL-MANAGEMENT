@@ -27,8 +27,12 @@ export type ReportData = {
   topRated: Ranked[]; // value = 평균, count = 평가 수
   ratingCount: number; // 평가 건수
   raterCount: number; // 평가 참여 인원
-  mvp: { name: string; votes: number } | null;
+  mvp: { name: string; votes: number; byAdmin: boolean } | null;
   mvpVotes: { name: string; votes: number }[];
+  /** 대표 총평 */
+  memo: string | null;
+  /** 참석자별 코멘트: 기록 수치 + 대표 키워드 (보고서 본문) */
+  playerLines: { name: string; stats: string; note: string | null; isMvp: boolean }[];
   playTime: { name: string; quarters: number }[]; // 많이 뛴 순
   notes: { name: string; note: string }[]; // 선수별 비고(키워드)
   comments: { name: string; comment: string }[];
@@ -43,24 +47,26 @@ export async function buildReport(matchId: string): Promise<ReportData | null> {
   const { data: match } = await supabase.from("matches").select("*").eq("id", matchId).maybeSingle();
   if (!match) return null;
 
-  const [{ data: settings }, { data: players }, { data: attendance }, { data: games }, { data: ratings }, { data: feedback }] = await Promise.all([
+  const [{ data: settings }, { data: players }, { data: attendance }, { data: games }, { data: ratings }, { data: feedback }, { data: saved }] = await Promise.all([
     supabase.from("team_settings").select("team_name").eq("id", 1).maybeSingle(),
     supabase.from("players").select("id, name"),
     supabase.from("attendance").select("player_id, status, late_minutes, note").eq("match_id", matchId),
     supabase.from("games").select("id, game_number, team_a_score, team_b_score").eq("match_id", matchId).order("game_number"),
     supabase.from("ratings").select("player_id, rater_id, score").eq("match_id", matchId),
     supabase.from("match_feedback").select("player_id, comment, mvp_vote_id").eq("match_id", matchId),
+    supabase.from("match_reports").select("summary_json").eq("match_id", matchId).maybeSingle(),
   ]);
+  const adminInput = ((saved?.summary_json as { admin_input?: { mvp_player_id: string | null; memo: string | null } } | null)?.admin_input) ?? null;
   const nameOf = new Map((players ?? []).map((p) => [p.id, p.name]));
   const name = (id: string | null) => (id ? (nameOf.get(id) ?? "?") : "?");
 
   const gameIds = (games ?? []).map((g) => g.id);
   const [{ data: gp }, { data: events }] = gameIds.length
     ? await Promise.all([
-        supabase.from("game_players").select("player_id, game_id").in("game_id", gameIds),
+        supabase.from("game_players").select("player_id, game_id, position").in("game_id", gameIds),
         supabase.from("events").select("scorer_id, assist_id, is_own_goal, team").in("game_id", gameIds),
       ])
-    : [{ data: [] as { player_id: string; game_id: string }[] }, { data: [] as { scorer_id: string | null; assist_id: string | null; is_own_goal: boolean; team: "A" | "B" }[] }];
+    : [{ data: [] as { player_id: string; game_id: string; position: string | null }[] }, { data: [] as { scorer_id: string | null; assist_id: string | null; is_own_goal: boolean; team: "A" | "B" }[] }];
 
   const present = (attendance ?? []).filter((a) => a.status === "present" || a.status === "late");
   const quarters = (games ?? []).map((g) => ({ n: g.game_number, a: g.team_a_score, b: g.team_b_score }));
@@ -89,13 +95,37 @@ export async function buildReport(matchId: string): Promise<ReportData | null> {
   const voteCount = count((feedback ?? []).map((f) => f.mvp_vote_id));
   const mvpVotes = voteCount.map((v) => ({ name: v.name, votes: v.value }));
   let mvp: ReportData["mvp"] = null;
-  if (voteCount.length > 0) {
+  if (adminInput?.mvp_player_id) {
+    // 대표 지정이 최우선
+    const votes = voteCount.find((v) => v.player_id === adminInput.mvp_player_id)?.value ?? 0;
+    mvp = { name: name(adminInput.mvp_player_id), votes, byAdmin: true };
+  } else if (voteCount.length > 0) {
     const top = voteCount.filter((v) => v.value === voteCount[0].value);
     const pick = top.sort((a, b) => (ratingById.get(b.player_id) ?? 0) - (ratingById.get(a.player_id) ?? 0))[0];
-    mvp = { name: pick.name, votes: pick.value };
+    mvp = { name: pick.name, votes: pick.value, byAdmin: false };
   }
 
   const playTime = count((gp ?? []).map((x) => x.player_id)).map((x) => ({ name: x.name, quarters: x.value }));
+
+  // 참석자별 코멘트 라인 (출전 많은 순)
+  const goalsBy = new Map(count((events ?? []).filter((e) => !e.is_own_goal).map((e) => e.scorer_id)).map((x) => [x.player_id, x.value]));
+  const assistsBy = new Map(count((events ?? []).map((e) => e.assist_id)).map((x) => [x.player_id, x.value]));
+  const quartersBy = new Map(count((gp ?? []).map((x) => x.player_id)).map((x) => [x.player_id, x.value]));
+  const gkBy = new Map(count((gp ?? []).filter((x) => x.position === "GK").map((x) => x.player_id)).map((x) => [x.player_id, x.value]));
+  const noteBy = new Map((attendance ?? []).filter((a) => a.note).map((a) => [a.player_id, a.note!]));
+  const playerLines = present
+    .map((a) => {
+      const g = goalsBy.get(a.player_id) ?? 0, as = assistsBy.get(a.player_id) ?? 0, q = quartersBy.get(a.player_id) ?? 0, k = gkBy.get(a.player_id) ?? 0;
+      const parts = [`${q}쿼터`];
+      if (g) parts.push(`${g}골`);
+      if (as) parts.push(`${as}도움`);
+      if (k) parts.push(`GK ${k}Q`);
+      if (a.status === "late") parts.push(`지각${a.late_minutes ? ` ${a.late_minutes}분` : ""}`);
+      const mvpId = adminInput?.mvp_player_id ?? null;
+      return { player_id: a.player_id, name: name(a.player_id), stats: parts.join(" · "), note: noteBy.get(a.player_id) ?? null, isMvp: mvpId ? mvpId === a.player_id : mvp?.name === name(a.player_id), q };
+    })
+    .sort((a, b) => b.q - a.q || a.name.localeCompare(b.name))
+    .map(({ name, stats, note, isMvp }) => ({ name, stats, note, isMvp }));
 
   const data: ReportData = {
     matchId,
@@ -122,6 +152,8 @@ export async function buildReport(matchId: string): Promise<ReportData | null> {
     raterCount: new Set((ratings ?? []).map((r) => r.rater_id)).size,
     mvp,
     mvpVotes,
+    memo: adminInput?.memo ?? null,
+    playerLines,
     playTime,
     notes: (attendance ?? []).filter((a) => a.note).map((a) => ({ name: name(a.player_id), note: a.note! })).sort((a, b) => a.name.localeCompare(b.name)),
     comments: (feedback ?? []).filter((f) => f.comment).map((f) => ({ name: name(f.player_id), comment: f.comment! })),
