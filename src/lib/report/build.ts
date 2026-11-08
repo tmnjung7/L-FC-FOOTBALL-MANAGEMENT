@@ -39,6 +39,9 @@ export type ReportData = {
   feedbackCount: number;
   narrative: string[];
   generatedAt: string;
+  /** AI 가 다듬어 쓴 보고서 (있으면 화면·텍스트·이미지에서 우선 사용) */
+  ai: { headline: string; summary: string; playerComments: { name: string; comment: string }[]; nextFocus: string; generated_at: string } | null;
+  aiConfigured: boolean;
 };
 
 /** 모임 하나의 보고서 데이터를 DB 에서 모아 만든다 (항상 최신 기준) */
@@ -56,7 +59,8 @@ export async function buildReport(matchId: string): Promise<ReportData | null> {
     supabase.from("match_feedback").select("player_id, comment, mvp_vote_id").eq("match_id", matchId),
     supabase.from("match_reports").select("summary_json").eq("match_id", matchId).maybeSingle(),
   ]);
-  const adminInput = ((saved?.summary_json as { admin_input?: { mvp_player_id: string | null; memo: string | null } } | null)?.admin_input) ?? null;
+  const savedJson = saved?.summary_json as { admin_input?: { mvp_player_id: string | null; memo: string | null }; ai?: ReportData["ai"] } | null;
+  const adminInput = savedJson?.admin_input ?? null;
   const nameOf = new Map((players ?? []).map((p) => [p.id, p.name]));
   const name = (id: string | null) => (id ? (nameOf.get(id) ?? "?") : "?");
 
@@ -160,6 +164,8 @@ export async function buildReport(matchId: string): Promise<ReportData | null> {
     feedbackCount: (feedback ?? []).length,
     narrative: [],
     generatedAt: new Date().toISOString(),
+    ai: savedJson?.ai ?? null,
+    aiConfigured: !!process.env.ANTHROPIC_API_KEY,
   };
   data.narrative = buildNarrative(data);
   return data;

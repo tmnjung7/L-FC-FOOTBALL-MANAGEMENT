@@ -26,6 +26,8 @@ import { getMatchDetail, getRecentOpponents, getRecentVenues } from "@/lib/queri
 import { teamLabel } from "@/lib/match-labels";
 
 export const dynamic = "force-dynamic";
+// AI 보고서 생성(서버 액션)이 수십 초 걸릴 수 있어 함수 시간 제한을 늘린다 (Vercel Hobby 최대 60초)
+export const maxDuration = 60;
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> };
 

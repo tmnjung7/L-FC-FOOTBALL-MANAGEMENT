@@ -84,6 +84,12 @@ pnpm dev
 
 (5단계에서 Supabase Auth 의 Redirect URL 에 Vercel 주소를 등록하는 절차를 추가로 안내합니다.)
 
+## 3-1. (선택) AI 보고서 다듬기 켜기
+경기 보고서의 "AI로 다듬기" 버튼을 쓰려면 Anthropic API 키가 필요합니다.
+1. https://console.anthropic.com 가입 → API Keys → Create Key → 키 복사 (`sk-ant-...`)
+2. Vercel → Settings → Environment Variables → Key `ANTHROPIC_API_KEY`, Value 붙여넣기, **Type: Secret** → Save → Redeploy
+3. 비용: 경기 보고서 1건당 약 10~20원 수준 (Claude Opus 5.5 기준). 키는 서버에서만 쓰이고 브라우저에 노출되지 않습니다.
+
 ## 4. 자주 쓰는 명령
 ```bash
 pnpm dev                 # 개발 서버

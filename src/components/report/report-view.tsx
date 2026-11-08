@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PencilLine, Star } from "lucide-react";
+import { AiReportButton } from "@/components/report/ai-report-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,12 +62,23 @@ export function ReportView({ d, showRateLink, isAdmin = false }: { d: ReportData
         </Card>
       )}
 
-      {/* 요약 문단 */}
-      {d.narrative.length > 0 && (
+      {/* AI 다듬기 (admin) */}
+      {isAdmin && d.status === "done" && <AiReportButton matchId={d.matchId} configured={d.aiConfigured} hasAi={!!d.ai} generatedAt={d.ai?.generated_at ?? null} />}
+
+      {/* 요약 문단: AI 가 쓴 글이 있으면 그것을, 없으면 템플릿 문장 */}
+      {d.ai ? (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-col gap-2">
+            <p className="text-lg font-bold">「{d.ai.headline}」</p>
+            <p className="text-sm leading-relaxed whitespace-pre-line">{d.ai.summary}</p>
+            {d.ai.nextFocus && <p className="text-muted-foreground text-sm"><b>다음 경기 포인트</b> · {d.ai.nextFocus}</p>}
+          </CardContent>
+        </Card>
+      ) : d.narrative.length > 0 ? (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="text-sm leading-relaxed">{d.narrative.join(" ")}</CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* 쿼터별 스코어 */}
       {d.quarters.length > 0 && (
@@ -123,15 +135,24 @@ export function ReportView({ d, showRateLink, isAdmin = false }: { d: ReportData
         <CardContent>
           {d.playerLines.length === 0 ? <p className="text-muted-foreground text-sm">출석 체크된 참석자가 없습니다.</p> : (
             <ul className="divide-y text-sm">
-              {d.playerLines.map((p) => (
-                <li key={p.name} className="flex flex-col py-1.5">
-                  <span className="flex items-center justify-between">
-                    <b>{p.isMvp ? "🏆 " : ""}{p.name}</b>
-                    <span className="text-muted-foreground text-xs">{p.stats}</span>
-                  </span>
-                  {p.note ? <span className="text-primary text-sm">{p.note}</span> : <span className="text-muted-foreground text-xs">{isAdmin ? "피드백 미입력" : ""}</span>}
-                </li>
-              ))}
+              {d.playerLines.map((p) => {
+                const aiComment = d.ai?.playerComments.find((c) => c.name === p.name)?.comment;
+                return (
+                  <li key={p.name} className="flex flex-col py-1.5">
+                    <span className="flex items-center justify-between">
+                      <b>{p.isMvp ? "🏆 " : ""}{p.name}</b>
+                      <span className="text-muted-foreground text-xs">{p.stats}</span>
+                    </span>
+                    {aiComment ? (
+                      <span className="text-sm leading-snug">{aiComment}</span>
+                    ) : p.note ? (
+                      <span className="text-primary text-sm">{p.note}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">{isAdmin ? "피드백 미입력" : ""}</span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>

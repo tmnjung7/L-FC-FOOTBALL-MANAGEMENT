@@ -24,7 +24,8 @@ export function ReportImageCard({ d }: { d: ReportData }) {
   return (
     <div id="report-image-card" style={S.wrap} aria-hidden="true">
       <p style={{ fontSize: 34, fontWeight: 700, color: "#16a34a", margin: 0 }}>⚽ {d.teamName} 경기 결과</p>
-      <h1 style={S.h1}>{d.dateLabel}</h1>
+      <h1 style={S.h1}>{d.ai?.headline ?? d.dateLabel}</h1>
+      {d.ai?.headline && <p style={{ ...S.sub, marginTop: 4 }}>{d.dateLabel}</p>}
       <p style={S.sub}>{d.opponent ? `vs ${d.opponent}` : "자체전"} · {d.venue ?? "장소 미정"} · 참석 {d.attendeeCount}명{d.lateCount ? ` (지각 ${d.lateCount})` : ""}</p>
       {d.quarters.length > 0 && (
         <>
@@ -62,12 +63,18 @@ export function ReportImageCard({ d }: { d: ReportData }) {
       {d.playerLines.length > 0 && (
         <div style={S.section}>
           <h2 style={S.h2}>선수별 코멘트</h2>
-          {d.playerLines.slice(0, 16).map((p) => (
-            <p key={p.name} style={{ ...S.small, margin: "6px 0", display: "flex", justifyContent: "space-between", gap: 16 }}>
-              <span><b>{p.isMvp ? "🏆 " : ""}{p.name}</b>{p.note ? <span style={{ color: "#16a34a" }}> · {p.note}</span> : null}</span>
-              <span style={{ color: "#6b7280", whiteSpace: "nowrap" }}>{p.stats}</span>
-            </p>
-          ))}
+          {d.playerLines.slice(0, 16).map((p) => {
+            const c = d.ai?.playerComments.find((x) => x.name === p.name)?.comment;
+            return (
+              <div key={p.name} style={{ margin: "10px 0" }}>
+                <p style={{ ...S.small, margin: 0, display: "flex", justifyContent: "space-between", gap: 16 }}>
+                  <b>{p.isMvp ? "🏆 " : ""}{p.name}</b>
+                  <span style={{ color: "#6b7280", whiteSpace: "nowrap" }}>{p.stats}</span>
+                </p>
+                {(c || p.note) && <p style={{ fontSize: 28, margin: "2px 0 0", color: c ? "#374151" : "#16a34a", lineHeight: 1.45 }}>{c ?? p.note}</p>}
+              </div>
+            );
+          })}
         </div>
       )}
       {d.memo && (
@@ -84,9 +91,10 @@ export function ReportImageCard({ d }: { d: ReportData }) {
         </div>
       )}
 
-      {d.narrative.length > 0 && (
+      {(d.ai?.summary || d.narrative.length > 0) && (
         <div style={S.section}>
-          <p style={{ fontSize: 32, lineHeight: 1.6, margin: 0 }}>{d.narrative.join(" ")}</p>
+          <p style={{ fontSize: 32, lineHeight: 1.6, margin: 0, whiteSpace: "pre-line" }}>{d.ai?.summary ?? d.narrative.join(" ")}</p>
+          {d.ai?.nextFocus && <p style={{ fontSize: 30, lineHeight: 1.5, margin: "16px 0 0", color: "#166534" }}>▶ 다음 경기: {d.ai.nextFocus}</p>}
         </div>
       )}
       <p style={S.foot}>{d.teamName} 풋살 매니저 · 자동 생성 보고서</p>

@@ -4,6 +4,7 @@ import type { ReportData } from "@/lib/report/build";
 export function reportToText(d: ReportData, link?: string): string {
   const L: string[] = [];
   L.push(`⚽ ${d.teamName} 경기 결과 · ${d.dateLabel}`);
+  if (d.ai?.headline) L.push(`「${d.ai.headline}」`);
   L.push(`${d.opponent ? `vs ${d.opponent} · ` : "자체전 · "}${d.venue ?? "장소 미정"}${d.timeLabel ? ` ${d.timeLabel}` : ""} · ${d.attendeeCount}명${d.lateCount ? ` (지각 ${d.lateCount})` : ""}`);
   if (d.quarters.length) {
     const r = d.opponent ? (d.totalA > d.totalB ? "승" : d.totalA === d.totalB ? "무" : "패") : `A ${d.winsA}승 ${d.draws}무 ${d.lossesA}패`;
@@ -17,7 +18,15 @@ export function reportToText(d: ReportData, link?: string): string {
   else L.push("⭐ 평점 미입력");
   if (d.mvp) L.push(`🏆 MVP: ${d.mvp.name}${d.mvp.byAdmin ? "" : ` (${d.mvp.votes}표)`}`);
   if (d.playTime.length) L.push(`🔁 출전: 최다 ${d.playTime[0].name} ${d.playTime[0].quarters}Q · 최소 ${d.playTime[d.playTime.length - 1].name} ${d.playTime[d.playTime.length - 1].quarters}Q`);
-  if (d.playerLines.length) {
+  if (d.ai?.playerComments?.length) {
+    L.push("");
+    L.push("📝 선수별 코멘트");
+    const statsBy = new Map(d.playerLines.map((p) => [p.name, p]));
+    for (const c of d.ai.playerComments) {
+      const p = statsBy.get(c.name);
+      L.push(`- ${p?.isMvp ? "🏆 " : ""}${c.name}${p ? ` (${p.stats})` : ""}: ${c.comment}`);
+    }
+  } else if (d.playerLines.length) {
     L.push("");
     L.push("📝 선수별 코멘트");
     for (const p of d.playerLines) L.push(`- ${p.isMvp ? "🏆 " : ""}${p.name} (${p.stats})${p.note ? `: ${p.note}` : ""}`);
@@ -27,7 +36,11 @@ export function reportToText(d: ReportData, link?: string): string {
     L.push("💬 팀원 피드백");
     for (const c of d.comments) L.push(`- ${c.name}: ${c.comment}`);
   }
-  if (d.narrative.length) {
+  if (d.ai?.summary) {
+    L.push("");
+    L.push(d.ai.summary);
+    if (d.ai.nextFocus) L.push(`▶ 다음 경기: ${d.ai.nextFocus}`);
+  } else if (d.narrative.length) {
     L.push("");
     L.push(d.narrative.join(" "));
   }

@@ -25,6 +25,8 @@
 6. 전술 현황판: 풋살 코트(40m×20m) 위 드래그 마커, 포메이션 프리셋, 화살표·영역·메모, 저장
 7. 경기 피드백 보고서: **대표(lfc1·lfc2)가 참석자별 키워드·메모 + MVP 지정 + 총평을 입력**(/matches/[id]/feedback) → 보고서 자동 생성(선수별 코멘트·요약·총평) → 텍스트 복사/이미지로 카카오톡 공유.
    팀원 평점·투표(/rate)는 보조(team_settings.rating_enabled 로 끌 수 있음). 대표 지정 MVP 가 투표보다 우선. 대표 입력은 match_reports.summary_json.admin_input 에 저장(스키마 변경 없음)
+   - **AI 다듬기**(admin 버튼): `lib/report/ai.ts` 가 Claude(`claude-opus-5-5`, effort low, zod 구조화 출력)로 headline·summary·선수별 코멘트·nextFocus 를 써서 `summary_json.ai` 에 저장.
+     화면·텍스트·이미지는 ai 가 있으면 우선 사용, 없으면 템플릿(narrative.ts). 서버 환경변수 `ANTHROPIC_API_KEY` 필요(없으면 설정 안내만 표시). 모임 페이지 `maxDuration = 60`
 8. 결산 리포트: 기록은 계속 쌓이고(이력), **월말·분기·연말** 결산 리포트를 자동 생성(`period_reports`). 집계는 `fn_player_season_stats(from, to)` 하나로 통일
 9. 포지션 이력: 쿼터마다 실제 뛴 포지션(`game_players.position`)을 기록해 선수별 "주로 뛴 포지션" 통계 제공.
    **골키퍼는 편성에서 GK 버튼으로 지정(팀당 1명)** → 쿼터 카드 🧤 표시, 통계 "골키퍼 횟수" 랭킹·표 열
@@ -41,7 +43,8 @@
 | 전술판 | react-konva **19.0.x** (React 19.1 호환. 19.2+ 는 React 19.2/19.3 필요) | 좌표는 0~1 비율로 저장, 픽셀 변환은 렌더링 때만 |
 | 차트 | Recharts | |
 | PWA | Serwist (`@serwist/next`) | `src/app/sw.ts`, 개발 모드에서는 비활성 |
-| 배포 | Vercel 무료 | 환경변수 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| 배포 | Vercel 무료 | 환경변수 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, (선택) `ANTHROPIC_API_KEY` |
+| AI 글쓰기 | `@anthropic-ai/sdk` + zod | 보고서 다듬기 전용. 모델 `claude-opus-5-5`, `messages.parse` + `zodOutputFormat`. 키는 서버에서만 |
 | 패키지 매니저 | pnpm | `pnpm dev` / `pnpm build` / `pnpm lint` |
 
 ## 4. 제약 (UI/UX 규칙)
@@ -105,7 +108,7 @@ futsal-manager/
    │  ├─ matches/            # MatchCard, MatchFormDrawer(+MultiDatePicker), MatchTabs, MatchActions, AttendanceEditor/View,
    │  │                      #   RecordCta(경기 기록하기 버튼), GamesTab, QuarterCountBar, NewGameButton, LineupEditor(external 모드), Scoreboard(타이머),
    │  │                      #   QuickGoalDrawer(2단계 득점), ConcedeDrawer(실점), GoalDrawer(득점 탭 상세), EventList, EventsTab, GameSettings
-   │  ├─ report/             # ReportView(카드), ReportShare(텍스트 복사·이미지·링크·확정 저장), ReportImageCard(1080px 공유 이미지), AdminFeedbackForm(키워드 토글·MVP·총평)
+   │  ├─ report/             # ReportView(카드), ReportShare(텍스트 복사·이미지·링크·확정 저장), ReportImageCard(1080px 공유 이미지), AdminFeedbackForm(키워드 토글·MVP·총평), AiReportButton
    │  ├─ stats/              # PeriodFilter, Ranking(+METRICS/rankPlayers), StatsTable(정렬), StatsCharts(Recharts), ShareImageButton(html-to-image)
    │  └─ tactics/            # TacticsBoard, BoardCanvas(코트·마커·화살표·영역·메모, 세로는 Group -90° 회전), BoardToolbar(도구·프리셋·선수·저장·공유), TacticThumbnail(SVG)
    ├─ lib/
@@ -121,7 +124,7 @@ futsal-manager/
    │  ├─ supabase/           # client.ts(브라우저), server.ts(서버) — Database 제네릭 적용
    │  ├─ formations.ts       # 포메이션 프리셋 상수 + 선호 포지션 자동 배정 (프리셋 추가는 여기만)
    │  ├─ tactics/board-types.ts # board_json 타입, 0~1 좌표 ↔ 픽셀, 격자 스냅, parseBoard
-   │  └─ report/            # build.ts(보고서 데이터 조립), narrative.ts(템플릿 요약 문장·조사 처리), text.ts(카톡용 텍스트)
+   │  └─ report/            # build.ts(보고서 데이터 조립 + ai 읽기), narrative.ts(템플릿 요약), text.ts(카톡용 텍스트), ai.ts(Claude 로 다듬기, server-only)
    ├─ store/board-store.ts   # Zustand: 보드 상태·되돌리기(20)·도구·격자/스냅, localStorage(fm:board) 자동 보관
    └─ types/database.ts     # DB 타입 (스키마와 1:1, 수정 시 같이 변경) + 한국어 라벨 상수
 ```
