@@ -7,12 +7,13 @@ const TABS: { key: MatchTab; label: string }[] = [
   { key: "attendance", label: "출석" },
   { key: "games", label: "쿼터" },
   { key: "events", label: "득점" },
+  { key: "report", label: "보고서" },
 ];
 
 /** 모임 상세 상단 탭 (URL ?tab= 으로 상태 유지, 서버 렌더링) */
 export function MatchTabs({ matchId, active, counts }: { matchId: string; active: MatchTab; counts?: Partial<Record<MatchTab, number>> }) {
   return (
-    <nav className="bg-muted grid grid-cols-3 gap-1 rounded-lg p-1" aria-label="모임 상세 탭">
+    <nav className="bg-muted grid grid-cols-4 gap-1 rounded-lg p-1" aria-label="모임 상세 탭">
       {TABS.map((t) => (
         <Link
           key={t.key}

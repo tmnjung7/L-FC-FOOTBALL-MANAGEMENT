@@ -13,6 +13,11 @@ import { MatchActions } from "@/components/matches/match-actions";
 import { MatchTabs, type MatchTab } from "@/components/matches/match-tabs";
 import { RecordCta } from "@/components/matches/record-cta";
 import { MatchTypeButton } from "@/components/matches/match-type-button";
+import { ReportView } from "@/components/report/report-view";
+import { ReportShare } from "@/components/report/report-share";
+import { ReportImageCard } from "@/components/report/report-image-card";
+import { buildReport } from "@/lib/report/build";
+import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth";
 import { formatDate, formatTime } from "@/lib/date";
 import { getTeamSettings } from "@/lib/queries/home";
@@ -35,13 +40,17 @@ const STATUS_VARIANT = { scheduled: "default", done: "muted", cancelled: "destru
 
 export default async function MatchDetailPage({ params, searchParams }: Props) {
   const [{ id }, { tab }] = await Promise.all([params, searchParams]);
-  const active: MatchTab = tab === "games" || tab === "events" ? tab : "attendance";
+  const active: MatchTab = tab === "games" || tab === "events" || tab === "report" ? tab : "attendance";
 
   const [viewer, detail, settings, venues, opponents] = await Promise.all([getViewer(), getMatchDetail(id), getTeamSettings(), getRecentVenues(), getRecentOpponents()]);
   if (!detail) notFound();
   const { match, players, attendance } = detail;
 
   const gamesData = await getMatchGames(id);
+  const supabaseForReport = await createClient();
+  const [report, { data: savedReport }] = active === "report"
+    ? await Promise.all([buildReport(id), supabaseForReport.from("match_reports").select("generated_at").eq("match_id", id).maybeSingle()])
+    : [null, { data: null }];
   const gameCount = gamesData.games.length;
   const goalCount = gamesData.games.reduce((n, g) => n + g.events.length, 0);
 
@@ -94,6 +103,13 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
           ))}
         {active === "games" && <GamesTab matchId={id} data={gamesData} canScore={viewer.canScore} opponent={match.opponent} />}
         {active === "events" && <EventsTab matchId={id} data={gamesData} canScore={viewer.canScore} opponent={match.opponent} />}
+        {active === "report" && report && (
+          <>
+            <ReportShare d={report} isAdmin={viewer.isAdmin} savedAt={savedReport?.generated_at ?? null} />
+            <ReportView d={report} showRateLink={match.status === "done"} />
+            <ReportImageCard d={report} />
+          </>
+        )}
       </div>
     </>
   );

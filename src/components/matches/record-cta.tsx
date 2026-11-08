@@ -13,6 +13,14 @@ type Props = { matchId: string; games: GameFull[]; canScore: boolean; attendeeCo
  */
 export function RecordCta({ matchId, games, canScore, attendeeCount, status, labelA = "A", labelB = "B" }: Props) {
   if (status === "cancelled") return null;
+  if (status === "done") {
+    return (
+      <Link href={`/matches/${matchId}?tab=report`} className="bg-primary/5 border-primary/40 hover:bg-primary/10 flex items-center justify-between rounded-xl border px-4 py-3 shadow-sm">
+        <span className="text-sm font-semibold">📋 경기 보고서 보기 · 평점/MVP 입력</span>
+        <span className="text-lg font-bold tabular-nums"><span className="text-team-a">{games.reduce((n, g) => n + g.game.team_a_score, 0)}</span> : <span className="text-team-b">{games.reduce((n, g) => n + g.game.team_b_score, 0)}</span></span>
+      </Link>
+    );
+  }
   const last = games[games.length - 1];
   const totalA = games.reduce((n, g) => n + g.game.team_a_score, 0);
   const totalB = games.reduce((n, g) => n + g.game.team_b_score, 0);
