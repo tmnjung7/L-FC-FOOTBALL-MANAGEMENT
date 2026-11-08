@@ -10,6 +10,7 @@ import { GameSettings } from "@/components/matches/game-settings";
 import { LineupEditor } from "@/components/matches/lineup-editor";
 import { NewGameButton } from "@/components/matches/new-game-button";
 import { Scoreboard } from "@/components/matches/scoreboard";
+import { AutoRefresh } from "@/components/matches/auto-refresh";
 import { getViewer } from "@/lib/auth";
 import { formatDateShort } from "@/lib/date";
 import { getMatchGames } from "@/lib/queries/games";
@@ -125,6 +126,7 @@ export default async function GamePage({ params }: Props) {
           </div>
         }
       />
+      <AutoRefresh intervalMs={5000} />
       <div className="flex flex-col gap-5 py-3 md:grid md:grid-cols-2 md:items-start">
         {!viewer.canScore && (
           <p className="text-muted-foreground bg-muted rounded-md px-3 py-2 text-xs md:col-span-2">

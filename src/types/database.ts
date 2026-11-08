@@ -71,6 +71,10 @@ export type GameRow = {
   duration_min: number;
   tactic_id: string | null;
   created_at: string;
+  /** 공유 타이머 (0006). 여러 기기에서 같은 시간이 보이도록 DB 에 저장 */
+  timer_running: boolean;
+  timer_end_at: string | null;
+  timer_remaining_ms: number | null;
 };
 
 export type GamePlayerRow = {
@@ -251,7 +255,7 @@ export type Database = {
       };
       games: {
         Row: GameRow;
-        Insert: WithDefaults<GameRow, "id" | "team_a_score" | "team_b_score" | "duration_min" | "tactic_id" | "created_at">;
+        Insert: WithDefaults<GameRow, "id" | "team_a_score" | "team_b_score" | "duration_min" | "tactic_id" | "created_at" | "timer_running" | "timer_end_at" | "timer_remaining_ms">;
         Update: Partial<GameRow>;
         Relationships: [
           Rel<"games_match_id_fkey", "match_id", "matches">,

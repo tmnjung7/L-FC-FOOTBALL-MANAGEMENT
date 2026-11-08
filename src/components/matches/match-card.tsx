@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate, formatTime, relativeDays } from "@/lib/date";
 import type { MatchSummaryRow } from "@/types/database";
 import { resultLabel } from "@/lib/match-labels";
+import { MatchDeleteButton } from "@/components/matches/match-delete-button";
+import { formatDateShort } from "@/lib/date";
 
 const STATUS: Record<MatchSummaryRow["status"], { label: string; variant: "default" | "muted" | "destructive" }> = {
   scheduled: { label: "예정", variant: "default" },
@@ -11,12 +13,12 @@ const STATUS: Record<MatchSummaryRow["status"], { label: string; variant: "defau
   cancelled: { label: "취소", variant: "destructive" },
 };
 
-export function MatchCard({ m }: { m: MatchSummaryRow }) {
+export function MatchCard({ m, canDelete = false }: { m: MatchSummaryRow; canDelete?: boolean }) {
   const isUpcoming = m.status === "scheduled";
   const st = STATUS[m.status];
   return (
-    <li>
-      <Link href={`/matches/${m.match_id}`} className="bg-card hover:bg-accent flex min-h-16 items-center gap-3 rounded-xl border px-4 py-3 shadow-sm">
+    <li className="flex items-center gap-1">
+      <Link href={`/matches/${m.match_id}`} className="bg-card hover:bg-accent flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl border px-4 py-3 shadow-sm">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="font-semibold">{formatDate(m.match_date)}</p>
@@ -41,6 +43,7 @@ export function MatchCard({ m }: { m: MatchSummaryRow }) {
         </div>
         <ChevronRight className="text-muted-foreground size-5 shrink-0" />
       </Link>
+      {canDelete && <MatchDeleteButton matchId={m.match_id} label={formatDateShort(m.match_date)} gameCount={m.game_count} />}
     </li>
   );
 }

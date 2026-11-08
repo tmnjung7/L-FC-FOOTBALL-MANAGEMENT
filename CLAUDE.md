@@ -60,6 +60,8 @@
 - 로그인: 로그인 강제 없음(미들웨어는 세션 갱신만). 대표만 /login 에서 아이디(lfc1)+비밀번호. 아이디 뒤에 `@lfc.team` 자동 부착
 - "나"의 식별: 로그인 계정에 연결된 선수 → 없으면 /whoami 에서 고른 선수(쿠키 `fm_player_id`, 1년)
 - 전술판 코트 영역은 `touch-action: none` (스크롤과 드래그 충돌 방지)
+- 쿼터 화면은 `AutoRefresh`(5초, 화면 보일 때·바텀시트 닫혀 있을 때만)로 타이머·스코어·편성을 기기 간 동기화. 타이머 상태는 DB(`games.timer_*`)가 기준, 종료 시각은 절대 시각
+- 모임 삭제는 쿼터가 있어도 가능(확인 창에 쿼터 수 표시, cascade). 기록을 남기려면 "모임 취소"
 
 ## 5. 폴더 구조
 ```
@@ -78,6 +80,7 @@ futsal-manager/
 │  ├─ migrations/0003_auto_roles.sql   # lfc1/2→admin, lfc3→scorer 자동 부여 트리거
 │  ├─ migrations/0004_rsvp.sql         # 투표(rsvp)와 당일 출석(status) 분리, 노쇼 집계, 투표 집계 뷰 컬럼
 │  ├─ migrations/0005_opponent.sql     # 상대팀 경기: matches.opponent, events.scorer_id nullable(+자체전 검사 트리거), 뷰에 opponent·합계 골
+│  ├─ migrations/0006_game_timer.sql   # 공유 타이머: games.timer_running/timer_end_at/timer_remaining_ms
 │  ├─ seed.sql               # 가상 이름 15명, 모임 8회 × 9쿼터 (truncate 포함 — 운영 후 재실행 금지)
 │  └─ maintenance/cleanup_seed.sql  # 가상 데이터만 삭제 (실제 선수·대표가 만든 모임은 유지)
 ├─ scripts/

@@ -29,7 +29,10 @@ export function MatchActions({ match, gameCount, recentVenues, recentOpponents =
   }
 
   function remove() {
-    if (!confirm("이 모임 일정을 삭제할까요? (쿼터 기록이 없을 때만 가능)")) return;
+    const msg = gameCount > 0
+      ? `이 모임을 삭제할까요?\n쿼터 ${gameCount}개와 득점·출석·평점 기록이 모두 지워지며 되돌릴 수 없습니다.\n(기록은 남기고 싶다면 '모임 취소'를 쓰세요)`
+      : "이 모임 일정을 삭제할까요? 되돌릴 수 없습니다.";
+    if (!confirm(msg)) return;
     startTransition(async () => {
       const r = await deleteMatch(match.id);
       if (r && "error" in r) toast.error(r.error);
@@ -83,13 +86,11 @@ export function MatchActions({ match, gameCount, recentVenues, recentOpponents =
                 </Button>
               </DrawerClose>
             )}
-            {gameCount === 0 && (
-              <DrawerClose asChild>
-                <Button size="lg" variant="destructive" disabled={pending} onClick={remove}>
-                  <Trash2 /> 일정 삭제
-                </Button>
-              </DrawerClose>
-            )}
+            <DrawerClose asChild>
+              <Button size="lg" variant={gameCount === 0 ? "destructive" : "outline"} className={gameCount > 0 ? "text-destructive" : undefined} disabled={pending} onClick={remove}>
+                <Trash2 /> {gameCount === 0 ? "일정 삭제" : `모임 삭제 (쿼터 ${gameCount}개 포함)`}
+              </Button>
+            </DrawerClose>
           </div>
           <DrawerFooter>
             <DrawerClose asChild>

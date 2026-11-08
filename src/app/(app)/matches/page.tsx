@@ -55,7 +55,7 @@ export default async function MatchesPage() {
           ) : (
             <ul className="flex flex-col gap-2">
               {upcoming.map((m) => (
-                <MatchCard key={m.match_id} m={m} />
+                <MatchCard key={m.match_id} m={m} canDelete={viewer.canScore} />
               ))}
             </ul>
           )}

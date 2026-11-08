@@ -117,3 +117,22 @@ export async function copyPreviousLineup(matchId: string, gameId: string): Promi
   const { data: rows } = await supabase.from("game_players").select("player_id, team, position").eq("game_id", prev.id);
   return setLineup(matchId, gameId, (rows ?? []) as LineupRow[]);
 }
+
+export type TimerPatch = { running: boolean; end_at: string | null; remaining_ms: number | null };
+
+/** 쿼터 타이머 상태 저장 (scorer 이상). 다른 기기는 주기적으로 읽어 같은 시간을 본다 */
+export async function setGameTimer(matchId: string, gameId: string, t: TimerPatch): Promise<ActionResult> {
+  const viewer = await getViewer();
+  if (!viewer.canScore) return { error: "타이머 조작은 대표 계정 로그인 후 가능합니다." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("games")
+    .update({ timer_running: t.running, timer_end_at: t.end_at, timer_remaining_ms: t.remaining_ms })
+    .eq("id", gameId);
+  if (error) {
+    if (/timer_running|timer_end_at|schema cache/i.test(error.message)) return { error: "데이터베이스 업데이트가 필요합니다: supabase/migrations/0006_game_timer.sql 을 실행해 주세요." };
+    return { error: friendly(error.message) };
+  }
+  revalidatePath(`/matches/${matchId}/games/${gameId}`);
+  return { ok: true };
+}

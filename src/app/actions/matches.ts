@@ -103,17 +103,19 @@ export async function setMatchStatus(id: string, status: MatchStatus): Promise<A
   return { ok: true, id };
 }
 
-/** 쿼터가 하나도 없는 모임만 삭제 가능 (잘못 만든 예정 일정 정리용). scorer 이상 */
-export async function deleteMatch(id: string): Promise<ActionResult> {
+/**
+ * 모임 삭제 (쿼터·편성·득점·출석·평점·보고서가 함께 지워짐). scorer 이상.
+ * 화면에서 "정말 삭제" 확인을 거친 뒤 호출한다. redirect 여부는 호출한 화면이 정한다.
+ */
+export async function deleteMatch(id: string, opts: { redirectTo?: string | null } = {}): Promise<ActionResult> {
   const viewer = await getViewer();
   if (!viewer.canScore) return { error: "삭제는 대표 계정 로그인 후 가능합니다." };
   const supabase = await createClient();
-  const { count } = await supabase.from("games").select("id", { count: "exact", head: true }).eq("match_id", id);
-  if (count && count > 0) return { error: "쿼터 기록이 있는 모임은 삭제할 수 없습니다. 대신 '취소' 상태로 바꿔 주세요." };
   const { error } = await supabase.from("matches").delete().eq("id", id);
   if (error) return { error: friendly(error.message) };
   revalidateMatch();
-  redirect("/matches");
+  if (opts.redirectTo !== null) redirect(opts.redirectTo ?? "/matches");
+  return { ok: true };
 }
 
 /** 경기 유형 전환: 상대팀 이름을 넣으면 상대팀 경기, null 이면 자체전. scorer 이상 */

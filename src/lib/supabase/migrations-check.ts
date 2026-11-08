@@ -49,6 +49,14 @@ export const getMissingMigrations = cache(async (): Promise<MigrationStatus[]> =
         return !error || !/opponent/i.test(error.message);
       },
     },
+    {
+      file: "0006_game_timer.sql",
+      label: "공유 타이머",
+      test: async () => {
+        const { error } = await supabase.from("games").select("timer_running").limit(1);
+        return !error || !/timer_running/i.test(error.message);
+      },
+    },
   ];
   const results = await Promise.all(checks.map(async (c) => ({ file: c.file, label: c.label, applied: await c.test().catch(() => true) })));
   return results.filter((r) => !r.applied);
