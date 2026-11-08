@@ -96,11 +96,12 @@ futsal-manager/
    │  │  ├─ whoami/          # "내 이름 선택" (쿠키)
    │  │  ├─ matches/         # 경기 탭: 목록 → [id]?tab=attendance|games|events|report → games/[gameId](점수판), feedback(대표 피드백 작성, admin), rate(팀원 평점·투표)
    │  │  ├─ players/         # 선수 탭: 목록(+등록 바텀시트) → [id] 상세(시즌 요약·폼 차트·쿼터별 기록)
-   │  │  ├─ stats/           # 통계 탭: ?period=year|3m|all|custom&from&to&tab=rank|table|chart&metric= (서버 렌더, 링크 탭)
+   │  │  ├─ stats/           # 통계 탭: ?period=…&tab=rank|table|chart&metric= / report(결산 리포트)
+   │  │  ├─ settings/        # 팀 설정 (admin)
    │  │  └─ tactics/         # 전술판 탭: 자유 보드 (TacticsBoard → BoardCanvas(react-konva, ssr:false) + BoardToolbar)
    │  ├─ login/              # 대표 로그인 (탭 없음)
    │  ├─ auth/callback, auth/signout
-   │  └─ actions/            # 서버 액션: attendance, identity, players, matches, games, events, feedback(팀원 평점·투표), admin-feedback(대표 키워드·MVP·총평), reports(확정 저장)
+   │  └─ actions/            # 서버 액션: attendance, identity, players, matches, games(+setGameTimer), events, feedback, admin-feedback, reports(경기 확정·AI, 결산 저장·AI), settings
    ├─ middleware.ts          # Supabase 세션 쿠키 갱신 (로그인 강제 없음)
    ├─ components/
    │  ├─ ui/                 # shadcn/ui 컴포넌트 (button, card, input, label, badge, skeleton, sonner, drawer, switch, native-select)
@@ -111,7 +112,8 @@ futsal-manager/
    │  ├─ matches/            # MatchCard, MatchFormDrawer(+MultiDatePicker), MatchTabs, MatchActions, AttendanceEditor/View,
    │  │                      #   RecordCta(경기 기록하기 버튼), GamesTab, QuarterCountBar, NewGameButton, LineupEditor(external 모드), Scoreboard(타이머),
    │  │                      #   QuickGoalDrawer(2단계 득점), ConcedeDrawer(실점), GoalDrawer(득점 탭 상세), EventList, EventsTab, GameSettings
-   │  ├─ report/             # ReportView(카드), ReportShare(텍스트 복사·이미지·링크·확정 저장), ReportImageCard(1080px 공유 이미지), AdminFeedbackForm(키워드 토글·MVP·총평), AiReportButton
+   │  ├─ report/             # ReportView/Share/ImageCard(경기), AdminFeedbackForm, AiReportButton, PeriodReportView/Share/Image(결산)
+   │  ├─ settings/           # SettingsForm
    │  ├─ stats/              # PeriodFilter, Ranking(+METRICS/rankPlayers), StatsTable(정렬), StatsCharts(Recharts), ShareImageButton(html-to-image)
    │  └─ tactics/            # TacticsBoard, BoardCanvas(코트·마커·화살표·영역·메모, 세로는 Group -90° 회전), BoardToolbar(도구·프리셋·선수·저장·공유), TacticThumbnail(SVG)
    ├─ lib/
@@ -127,7 +129,7 @@ futsal-manager/
    │  ├─ supabase/           # client.ts(브라우저), server.ts(서버) — Database 제네릭 적용
    │  ├─ formations.ts       # 포메이션 프리셋 상수 + 선호 포지션 자동 배정 (프리셋 추가는 여기만)
    │  ├─ tactics/board-types.ts # board_json 타입, 0~1 좌표 ↔ 픽셀, 격자 스냅, parseBoard
-   │  └─ report/            # build.ts(보고서 데이터 조립 + ai 읽기), narrative.ts(템플릿 요약), text.ts(카톡용 텍스트), ai.ts(Claude 로 다듬기, server-only)
+   │  └─ report/            # build/narrative/text/ai (경기 보고서), period.ts(결산 데이터·템플릿·텍스트), period-ai.ts(결산 AI)
    ├─ store/board-store.ts   # Zustand: 보드 상태·되돌리기(20)·도구·격자/스냅, localStorage(fm:board) 자동 보관
    └─ types/database.ts     # DB 타입 (스키마와 1:1, 수정 시 같이 변경) + 한국어 라벨 상수
 ```
@@ -146,9 +148,9 @@ futsal-manager/
 ## 7. 작업 단계 (진행 상황)
 - [x] 1단계: 프로젝트 셋업, 하단 탭 뼈대, PWA 기본, Supabase 클라이언트 준비
 - [x] 2단계: 데이터 모델 — `supabase/migrations/0001_init.sql`, `src/types/database.ts`, `supabase/seed.sql`, `pnpm db:check`
-- [ ] 3단계: 화면 — [x] 로그인+홈 / [x] 선수(목록·등록·수정·상세) / [x] 경기(일정 다중 등록·출석·쿼터 편성·득점·경기 중 모드·상대팀 경기) / [x] 통계(기간 필터·랭킹·표·차트·이미지 공유) / [x] 평점·피드백·MVP(/matches/[id]/rate) / [ ] 설정
+- [x] 3단계: 화면 — 로그인+홈 / 선수 / 경기 / 통계 / 평점·피드백·MVP / 설정(/settings: 팀 이름·형식·쿼터 시간·지각 기준·평점 on/off·마감)
 - [x] 4단계: 전술 현황판 — 자유 보드(휴대폰 자동 보관), 격자·스냅, 마커 드래그, 화살표·영역·메모, 되돌리기, 포메이션 프리셋(선수 자동 배정), 저장/불러오기(admin), PNG 공유. 프레임(1→2→3)은 구조만(frames[])
-- [ ] 4-2단계: [x] 경기 보고서(모임 ?tab=report: 자동 생성·텍스트 복사·이미지 공유·링크·admin 확정 저장) / [ ] 월/분기/연 결산 리포트
+- [x] 4-2단계: 경기 보고서(?tab=report) + 결산 리포트(/stats/report?period=month|lastmonth|quarter|lastquarter|year|lastyear|3m|all|custom: 합계·상대별 전적·TOP3·공평도·경기 목록, 텍스트/이미지 공유, admin 저장·AI 다듬기 → period_reports)
 - [ ] 5단계: 검증 스크립트·Playwright E2E·Vercel 배포·백업 워크플로
 
 각 단계는 사용자가 `pnpm dev`로 휴대폰에서 직접 확인한 뒤 다음 단계로 넘어간다. 3단계 이상을 한 번에 하지 않는다.

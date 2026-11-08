@@ -9,13 +9,17 @@ import type { Period, PeriodKey } from "@/lib/queries/stats";
 import { cn } from "@/lib/utils";
 
 const PRESETS: { key: PeriodKey; label: string }[] = [
+  { key: "month", label: "이번 달" },
+  { key: "lastmonth", label: "지난 달" },
+  { key: "quarter", label: "이번 분기" },
+  { key: "lastquarter", label: "지난 분기" },
   { key: "year", label: "올해" },
   { key: "3m", label: "최근 3개월" },
   { key: "all", label: "전체" },
 ];
 
 /** 상단 기간 필터. URL ?period= 로 유지 (공유·뒤로가기 가능) */
-export function PeriodFilter({ period }: { period: Period }) {
+export function PeriodFilter({ period, basePath = "/stats" }: { period: Period; basePath?: string }) {
   const router = useRouter();
   const sp = useSearchParams();
   const [from, setFrom] = useState(period.from ?? "");
@@ -27,7 +31,7 @@ export function PeriodFilter({ period }: { period: Period }) {
       if (v === null) next.delete(k);
       else next.set(k, v);
     }
-    router.push(`/stats?${next.toString()}`);
+    router.push(`${basePath}?${next.toString()}`);
   }
 
   return (

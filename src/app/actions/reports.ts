@@ -45,3 +45,40 @@ export async function generateAiMatchReport(matchId: string): Promise<{ ok: true
     return { error: `AI 보고서 생성 실패: ${msg}` };
   }
 }
+
+// ---------------------------------------------------------------------------
+// 결산 리포트 (월/분기/연/직접 기간)
+// ---------------------------------------------------------------------------
+import { buildPeriodReport } from "@/lib/report/period";
+import { resolvePeriod } from "@/lib/queries/stats";
+
+/** 결산 리포트 저장(스냅샷) + 선택적으로 AI 다듬기. admin */
+export async function savePeriodReport(key: string, from: string | undefined, to: string | undefined, opts: { withAi: boolean }): Promise<{ ok: true } | { error: string }> {
+  const viewer = await getViewer();
+  if (!viewer.isAdmin) return { error: "결산 리포트 저장은 관리자(lfc1·lfc2)만 할 수 있습니다." };
+  const period = resolvePeriod(key, from, to);
+  if (!period.from || !period.to) return { error: "'전체' 기간은 저장할 수 없습니다. 월/분기/연 또는 직접 기간을 고르세요." };
+  const data = await buildPeriodReport(period);
+  if (data.stats.matchCount === 0) return { error: "이 기간에 완료된 모임이 없습니다." };
+  let ai = data.ai;
+  if (opts.withAi) {
+    try {
+      const { generatePeriodAi } = await import("@/lib/report/period-ai");
+      ai = await generatePeriodAi(data);
+    } catch (e) {
+      return { error: `AI 작성 실패: ${e instanceof Error ? e.message : String(e)}` };
+    }
+  }
+  const supabase = await createClient();
+  const { stats, tops, narrative } = data;
+  const summary = { ai, tops, totals: stats.totals, opponents: stats.opponents, matchCount: stats.matchCount, players: stats.players, months: stats.months } as unknown as Json;
+  const { error } = await supabase
+    .from("period_reports")
+    .upsert(
+      { period_type: period.type, period_start: period.from, period_end: period.to, title: `${period.label} 결산`, summary_json: summary, narrative: ai?.summary ?? narrative.join(" "), generated_at: new Date().toISOString() },
+      { onConflict: "period_type,period_start,period_end" },
+    );
+  if (error) return { error: error.message.includes("row-level security") ? "권한이 없습니다." : error.message };
+  revalidatePath("/stats/report");
+  return { ok: true };
+}

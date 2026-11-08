@@ -7,6 +7,8 @@ import { METRICS, Ranking, type Metric } from "@/components/stats/ranking";
 import { StatsTable } from "@/components/stats/stats-table";
 import { StatsCharts } from "@/components/stats/charts";
 import { ShareImageButton } from "@/components/stats/share-button";
+import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getTeamSettings } from "@/lib/queries/home";
 import { getStats, resolvePeriod } from "@/lib/queries/stats";
@@ -44,7 +46,18 @@ export default async function StatsPage({ searchParams }: Props) {
 
   return (
     <>
-      <PageHeader title="통계" description={`${period.label} · 완료 모임 ${data.matchCount}회`} action={tab === "rank" ? <ShareImageButton targetId="ranking-share" fileName={title} /> : undefined} />
+      <PageHeader
+        title="통계"
+        description={`${period.label} · 완료 모임 ${data.matchCount}회`}
+        action={
+          <div className="flex items-center gap-1">
+            {tab === "rank" && <ShareImageButton targetId="ranking-share" fileName={title} label="공유" />}
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/stats/report?${new URLSearchParams({ period: period.key, ...(period.key === "custom" && period.from ? { from: period.from } : {}), ...(period.key === "custom" && period.to ? { to: period.to } : {}) }).toString()}`}><FileText /> 결산</Link>
+            </Button>
+          </div>
+        }
+      />
       <div className="flex flex-col gap-3 py-3">
         <PeriodFilter period={period} />
         <nav className="bg-muted grid grid-cols-3 gap-1 rounded-lg p-1" aria-label="통계 보기">

@@ -10,7 +10,7 @@ import { NoRoleNotice } from "@/components/auth/no-role-notice";
 import { DbUpdateNotice } from "@/components/auth/db-update-notice";
 import { getMissingMigrations } from "@/lib/supabase/migrations-check";
 import Link from "next/link";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Settings } from "lucide-react";
 import { getViewer } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getMonthLeaders, getNextMatch, getPendingRatings, getRecentResults, getTeamSettings } from "@/lib/queries/home";
@@ -55,6 +55,11 @@ export default async function HomePage() {
                 </span>
               )}
             </Link>
+            {viewer.isAdmin && (
+              <Link href="/settings" aria-label="설정" className="hover:bg-accent flex size-11 items-center justify-center rounded-md">
+                <Settings className="text-muted-foreground size-5" />
+              </Link>
+            )}
             {viewer.user ? (
               <SignOutButton />
             ) : (
