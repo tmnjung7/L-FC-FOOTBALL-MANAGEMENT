@@ -8,3 +8,4 @@ alter table public.games add column if not exists timer_running boolean not null
 alter table public.games add column if not exists timer_end_at timestamptz;
 alter table public.games add column if not exists timer_remaining_ms integer check (timer_remaining_ms is null or timer_remaining_ms >= 0);
 comment on column public.games.timer_end_at is '타이머 종료 예정 시각. timer_running 일 때만 의미';
+notify pgrst, 'reload schema';

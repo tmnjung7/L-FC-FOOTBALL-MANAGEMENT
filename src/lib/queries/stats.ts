@@ -72,7 +72,7 @@ function monthLabel(ym: string) {
 /** 통계 탭 데이터 한 번에 */
 export async function getStats(period: Period): Promise<StatsData> {
   const supabase = await createClient();
-  const [{ data: stats }, matchesQ] = await Promise.all([
+  const [{ data: stats }, matchesQ, { data: guestRows }] = await Promise.all([
     supabase.rpc("fn_player_season_stats", { p_from: period.from, p_to: period.to }),
     (() => {
       let q = supabase.from("v_match_summary").select("match_id, match_date, attendee_count, status, opponent, team_a_goals, team_b_goals, game_count, late_count, venue").eq("status", "done");
@@ -80,8 +80,11 @@ export async function getStats(period: Period): Promise<StatsData> {
       if (period.to) q = q.lte("match_date", period.to);
       return q.order("match_date");
     })(),
+    supabase.from("players").select("id").eq("is_guest", true),
   ]);
-  const rows: PlayerSeasonStatsRow[] = (stats ?? []).filter((r) => r.is_active || r.matches_played > 0);
+  // 용병은 랭킹·표·차트에서 제외 (0007 전이면 guestRows 가 null → 제외 없음)
+  const guestIds = new Set((guestRows ?? []).map((g) => g.id));
+  const rows: PlayerSeasonStatsRow[] = (stats ?? []).filter((r) => !guestIds.has(r.player_id) && (r.is_active || r.matches_played > 0));
   const matches = matchesQ.data ?? [];
 
   // 월별 모임 수 · 평균 참석

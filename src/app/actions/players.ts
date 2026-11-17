@@ -12,6 +12,7 @@ export type PlayerInput = {
   jersey_number: number | null;
   is_active: boolean;
   joined_at: string; // YYYY-MM-DD
+  is_guest?: boolean;
 };
 
 export type ActionResult = { ok: true; id?: string } | { error: string };
@@ -36,6 +37,7 @@ function clean(input: PlayerInput) {
     jersey_number: input.jersey_number,
     is_active: input.is_active,
     joined_at: input.joined_at,
+    is_guest: !!input.is_guest,
   };
 }
 

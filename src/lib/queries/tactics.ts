@@ -18,6 +18,6 @@ export async function getTactics(): Promise<TacticWithUsage[]> {
 /** 전술판에 올릴 활성 선수 */
 export async function getActivePlayers(): Promise<PlayerRow[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("players").select("*").eq("is_active", true).order("name");
+  const { data } = await supabase.from("players").select("*").eq("is_active", true).eq("is_guest", false).order("name");
   return data ?? [];
 }

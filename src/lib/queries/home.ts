@@ -72,9 +72,13 @@ export type MonthLeaders = {
 export async function getMonthLeaders(): Promise<MonthLeaders> {
   const supabase = await createClient();
   const { from, to, label } = monthRange(todayISO());
-  const { data } = await supabase.rpc("fn_player_season_stats", { p_from: from, p_to: to });
+  const [{ data }, { data: guestRows }] = await Promise.all([
+    supabase.rpc("fn_player_season_stats", { p_from: from, p_to: to }),
+    supabase.from("players").select("id").eq("is_guest", true),
+  ]);
+  const guestIds = new Set((guestRows ?? []).map((g) => g.id));
   const rows: PlayerSeasonStatsRow[] = data ?? [];
-  const played = rows.filter((r) => r.matches_played > 0);
+  const played = rows.filter((r) => r.matches_played > 0 && !guestIds.has(r.player_id));
 
   const top = (key: "goals" | "assists") => {
     const best = [...played].sort((a, b) => b[key] - a[key])[0];

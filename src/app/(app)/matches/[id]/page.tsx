@@ -22,7 +22,7 @@ import { getViewer } from "@/lib/auth";
 import { formatDate, formatTime } from "@/lib/date";
 import { getTeamSettings } from "@/lib/queries/home";
 import { getMatchGames } from "@/lib/queries/games";
-import { getMatchDetail, getRecentOpponents, getRecentVenues } from "@/lib/queries/matches";
+import { getMatchDetail, getRecentGuests, getRecentOpponents, getRecentVenues } from "@/lib/queries/matches";
 import { teamLabel } from "@/lib/match-labels";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +44,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
   const [{ id }, { tab }] = await Promise.all([params, searchParams]);
   const active: MatchTab = tab === "games" || tab === "events" || tab === "report" ? tab : "attendance";
 
-  const [viewer, detail, settings, venues, opponents] = await Promise.all([getViewer(), getMatchDetail(id), getTeamSettings(), getRecentVenues(), getRecentOpponents()]);
+  const [viewer, detail, settings, venues, opponents, guests] = await Promise.all([getViewer(), getMatchDetail(id), getTeamSettings(), getRecentVenues(), getRecentOpponents(), getRecentGuests()]);
   if (!detail) notFound();
   const { match, players, attendance } = detail;
 
@@ -99,7 +99,7 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
 
         {active === "attendance" &&
           (viewer.canScore ? (
-            <AttendanceEditor matchId={id} players={players} attendance={attendance} lateThreshold={settings?.late_threshold_min ?? 10} isUpcoming={match.status === "scheduled"} />
+            <AttendanceEditor matchId={id} players={players} attendance={attendance} lateThreshold={settings?.late_threshold_min ?? 10} isUpcoming={match.status === "scheduled"} recentGuests={guests} />
           ) : (
             <AttendanceView match={match} players={players} attendance={attendance} myPlayerId={viewer.player?.id ?? null} />
           ))}

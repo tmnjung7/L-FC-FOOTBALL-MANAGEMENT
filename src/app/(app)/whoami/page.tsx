@@ -23,6 +23,7 @@ export default async function WhoAmIPage({ searchParams }: Props) {
     .from("players")
     .select("id, name, nickname, preferred_position, jersey_number")
     .eq("is_active", true)
+    .eq("is_guest", false)
     .order("name");
 
   return (

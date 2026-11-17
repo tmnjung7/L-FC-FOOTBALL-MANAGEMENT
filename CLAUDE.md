@@ -14,7 +14,7 @@
   → 모든 개인 기록(출전·득점·어시·평점)은 모임(match)이 아니라 **쿼터(game) 단위**로 저장한다.
 
 ## 2. 핵심 기능 (우선순위 순)
-1. 선수 관리: 이름, 포지션 선호(GK/FIXO/ALA/PIVO/ANY), 활동 여부
+1. 선수 관리: 이름, 포지션 선호(GK/FIXO/ALA/PIVO/ANY), 활동 여부, **용병**(`players.is_guest`: 출석 탭·편성의 "+ 용병" 버튼으로 이름만 적어 추가, 같은 이름 재사용. 통계 랭킹·표·홈 랭킹·전술판·이름 선택에서 제외, 보고서에는 "(용병)" 표시)
 2. 경기(모임) 기록: 날짜·장소·참석자·지각자, 쿼터별 팀 편성, 쿼터별 스코어
    - **경기 유형 2가지**: 자체전(A팀 vs B팀, 둘 다 우리 선수) / **상대팀 경기**(`matches.opponent` 이름만, A = 우리, B = 상대). **새 모임 기본값은 상대팀 경기**, 편성 B팀 칸·모임 배지에서 언제든 전환(`setMatchOpponent`).
      상대팀 경기는 편성이 "출전/휴식" 한 칸, 실점은 득점자 없이(`events.scorer_id` null) 기록, 우리 자책골은 scorer = 우리 선수 + is_own_goal
@@ -81,6 +81,7 @@ futsal-manager/
 │  ├─ migrations/0004_rsvp.sql         # 투표(rsvp)와 당일 출석(status) 분리, 노쇼 집계, 투표 집계 뷰 컬럼
 │  ├─ migrations/0005_opponent.sql     # 상대팀 경기: matches.opponent, events.scorer_id nullable(+자체전 검사 트리거), 뷰에 opponent·합계 골
 │  ├─ migrations/0006_game_timer.sql   # 공유 타이머: games.timer_running/timer_end_at/timer_remaining_ms
+│  ├─ migrations/0007_guest_players.sql # 용병: players.is_guest
 │  ├─ seed.sql               # 가상 이름 15명, 모임 8회 × 9쿼터 (truncate 포함 — 운영 후 재실행 금지)
 │  └─ maintenance/cleanup_seed.sql  # 가상 데이터만 삭제 (실제 선수·대표가 만든 모임은 유지)
 ├─ scripts/
@@ -101,7 +102,7 @@ futsal-manager/
    │  │  └─ tactics/         # 전술판 탭: 자유 보드 (TacticsBoard → BoardCanvas(react-konva, ssr:false) + BoardToolbar)
    │  ├─ login/              # 대표 로그인 (탭 없음)
    │  ├─ auth/callback, auth/signout
-   │  └─ actions/            # 서버 액션: attendance, identity, players, matches, games(+setGameTimer), events, feedback, admin-feedback, reports(경기 확정·AI, 결산 저장·AI), settings
+   │  └─ actions/            # 서버 액션: attendance, identity, players, matches, games(+setGameTimer), events, feedback, admin-feedback, reports, settings, guests(용병 추가)
    ├─ middleware.ts          # Supabase 세션 쿠키 갱신 (로그인 강제 없음)
    ├─ components/
    │  ├─ ui/                 # shadcn/ui 컴포넌트 (button, card, input, label, badge, skeleton, sonner, drawer, switch, native-select)

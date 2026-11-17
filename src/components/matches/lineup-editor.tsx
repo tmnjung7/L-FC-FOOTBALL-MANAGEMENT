@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { copyPreviousLineup, setLineup, type LineupRow } from "@/app/actions/games";
 import { MatchTypeButton } from "@/components/matches/match-type-button";
+import { AddGuestButton } from "@/components/matches/add-guest-button";
 import type { LineupEntry } from "@/lib/queries/games";
 import type { PlayerRow, PositionType, TeamSide } from "@/types/database";
 import { cn } from "@/lib/utils";
@@ -194,6 +195,7 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
           {pending ? "저장 중…" : dirty ? "변경됨 (자동 저장)" : "자동 저장됨"}
         </p>
         <div className="flex gap-1">
+          <AddGuestButton matchId={matchId} />
           <Button type="button" variant="outline" size="sm" onClick={autoFill} disabled={pending || attendees.length === 0}>
             <Shuffle /> 자동 편성
           </Button>
@@ -222,6 +224,7 @@ export function LineupEditor({ matchId, gameId, attendees, lineup, perTeam, hasP
               onClick={() => cycle(p.id)}
               className="bg-card hover:bg-accent flex h-11 items-center gap-1 rounded-full border px-3 text-sm"
             >
+              {p.is_guest && <span className="text-[10px] text-amber-700">용병</span>}
               {p.name}
               <span className="text-muted-foreground text-[10px] tabular-nums">{quartersByPlayer.get(p.id) ?? 0}</span>
             </button>

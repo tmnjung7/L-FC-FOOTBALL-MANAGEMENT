@@ -2,7 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 
-export type MigrationStatus = { file: string; label: string; applied: boolean };
+export type MigrationStatus = { file: string; label: string; applied: boolean; detail?: string };
 
 /**
  * Supabase 에 어떤 마이그레이션(SQL)이 아직 적용되지 않았는지 점검.
@@ -11,18 +11,19 @@ export type MigrationStatus = { file: string; label: string; applied: boolean };
 export const getMissingMigrations = cache(async (): Promise<MigrationStatus[]> => {
   if (!isSupabaseConfigured) return [];
   const supabase = await createClient();
-  const checks: { file: string; label: string; test: () => Promise<boolean> }[] = [
+  // test 는 적용됐으면 null, 아니면 원인 문구를 돌려준다
+  const checks: { file: string; label: string; test: () => Promise<string | null> }[] = [
     {
       file: "0001_init.sql",
       label: "기본 테이블",
-      test: async () => !(await supabase.from("team_settings").select("id").limit(1)).error,
+      test: async () => { const { error } = await supabase.from("team_settings").select("id").limit(1); return error ? error.message : null; },
     },
     {
       file: "0002_open_access.sql",
       label: "오픈형 접근 · 역할",
       test: async () => {
         const { error } = await supabase.rpc("is_scorer");
-        return !error || !/could not find|does not exist|404/i.test(error.message);
+        return error && /could not find|does not exist|404/i.test(error.message) ? error.message : null;
       },
     },
     {
@@ -30,7 +31,7 @@ export const getMissingMigrations = cache(async (): Promise<MigrationStatus[]> =
       label: "대표 계정 자동 역할",
       test: async () => {
         const { error } = await supabase.rpc("default_role_for_email", { p_email: "x@x" });
-        return !error || !/could not find|does not exist|404/i.test(error.message);
+        return error && /could not find|does not exist|404/i.test(error.message) ? error.message : null;
       },
     },
     {
@@ -38,7 +39,7 @@ export const getMissingMigrations = cache(async (): Promise<MigrationStatus[]> =
       label: "사전 투표 · 노쇼",
       test: async () => {
         const { error } = await supabase.from("attendance").select("rsvp").limit(1);
-        return !error || !/rsvp/i.test(error.message);
+        return error && /rsvp/i.test(error.message) ? error.message : null;
       },
     },
     {
@@ -46,7 +47,7 @@ export const getMissingMigrations = cache(async (): Promise<MigrationStatus[]> =
       label: "상대팀 경기 모드",
       test: async () => {
         const { error } = await supabase.from("matches").select("opponent").limit(1);
-        return !error || !/opponent/i.test(error.message);
+        return error && /opponent/i.test(error.message) ? error.message : null;
       },
     },
     {
@@ -54,10 +55,23 @@ export const getMissingMigrations = cache(async (): Promise<MigrationStatus[]> =
       label: "공유 타이머",
       test: async () => {
         const { error } = await supabase.from("games").select("timer_running").limit(1);
-        return !error || !/timer_running/i.test(error.message);
+        return error && /timer_running/i.test(error.message) ? error.message : null;
+      },
+    },
+    {
+      file: "0007_guest_players.sql",
+      label: "용병 선수",
+      test: async () => {
+        const { error } = await supabase.from("players").select("is_guest").limit(1);
+        return error && /is_guest/i.test(error.message) ? error.message : null;
       },
     },
   ];
-  const results = await Promise.all(checks.map(async (c) => ({ file: c.file, label: c.label, applied: await c.test().catch(() => true) })));
+  const results = await Promise.all(
+    checks.map(async (c) => {
+      const detail = await c.test().catch((e) => (e instanceof Error ? e.message : String(e)));
+      return { file: c.file, label: c.label, applied: detail === null, detail: detail ?? undefined };
+    }),
+  );
   return results.filter((r) => !r.applied);
 });

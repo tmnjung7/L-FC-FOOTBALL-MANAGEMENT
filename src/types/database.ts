@@ -34,6 +34,8 @@ export type PlayerRow = {
   joined_at: string; // date 'YYYY-MM-DD'
   user_id: string | null;
   created_at: string;
+  /** 용병(게스트). 통계 랭킹에서 제외, 선수 목록 별도 칸 */
+  is_guest: boolean;
 };
 
 export type TacticRow = {
@@ -237,7 +239,7 @@ export type Database = {
     Tables: {
       players: {
         Row: PlayerRow;
-        Insert: WithDefaults<PlayerRow, "id" | "nickname" | "preferred_position" | "jersey_number" | "is_active" | "joined_at" | "user_id" | "created_at">;
+        Insert: WithDefaults<PlayerRow, "id" | "nickname" | "preferred_position" | "jersey_number" | "is_active" | "joined_at" | "user_id" | "created_at" | "is_guest">;
         Update: Partial<PlayerRow>;
         Relationships: [];
       };

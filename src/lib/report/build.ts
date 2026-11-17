@@ -52,7 +52,7 @@ export async function buildReport(matchId: string): Promise<ReportData | null> {
 
   const [{ data: settings }, { data: players }, { data: attendance }, { data: games }, { data: ratings }, { data: feedback }, { data: saved }] = await Promise.all([
     supabase.from("team_settings").select("team_name").eq("id", 1).maybeSingle(),
-    supabase.from("players").select("id, name"),
+    supabase.from("players").select("id, name, is_guest"),
     supabase.from("attendance").select("player_id, status, late_minutes, note").eq("match_id", matchId),
     supabase.from("games").select("id, game_number, team_a_score, team_b_score").eq("match_id", matchId).order("game_number"),
     supabase.from("ratings").select("player_id, rater_id, score").eq("match_id", matchId),
@@ -61,7 +61,7 @@ export async function buildReport(matchId: string): Promise<ReportData | null> {
   ]);
   const savedJson = saved?.summary_json as { admin_input?: { mvp_player_id: string | null; memo: string | null }; ai?: ReportData["ai"] } | null;
   const adminInput = savedJson?.admin_input ?? null;
-  const nameOf = new Map((players ?? []).map((p) => [p.id, p.name]));
+  const nameOf = new Map((players ?? []).map((p) => [p.id, p.is_guest ? `${p.name}(용병)` : p.name]));
   const name = (id: string | null) => (id ? (nameOf.get(id) ?? "?") : "?");
 
   const gameIds = (games ?? []).map((g) => g.id);

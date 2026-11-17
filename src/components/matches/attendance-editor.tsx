@@ -7,10 +7,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveAttendance, type AttendanceRowInput } from "@/app/actions/attendance";
+import { AddGuestButton } from "@/components/matches/add-guest-button";
 import { ATTENDANCE_LABEL, type AttendanceRow, type AttendanceStatus, type PlayerRow, type RsvpAnswer } from "@/types/database";
 import { cn } from "@/lib/utils";
 
-type Props = { matchId: string; players: PlayerRow[]; attendance: AttendanceRow[]; lateThreshold: number; isUpcoming: boolean };
+type Props = { matchId: string; players: PlayerRow[]; attendance: AttendanceRow[]; lateThreshold: number; isUpcoming: boolean; recentGuests?: string[] };
 
 const ORDER: AttendanceStatus[] = ["present", "late", "absent", "excused"];
 const SHORT: Record<AttendanceStatus, string> = { present: "출석", late: "지각", absent: "결석", excused: "사전" };
@@ -32,7 +33,7 @@ const EMPTY_ROW: Row = { rsvp: null, status: null, late_minutes: "", note: "", n
  * 1열: 투표(사전 참석/불참 — 카톡 투표 결과를 옮겨 적음)
  * 2열: 당일(출석/지각/결석/사전통보). "투표 참석자 전원 출석" 버튼으로 시작해 지각·결석만 바꾼다.
  */
-export function AttendanceEditor({ matchId, players, attendance, lateThreshold, isUpcoming }: Props) {
+export function AttendanceEditor({ matchId, players, attendance, lateThreshold, isUpcoming, recentGuests = [] }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const initial = useMemo(() => {
@@ -116,6 +117,7 @@ export function AttendanceEditor({ matchId, players, attendance, lateThreshold, 
           <div className="flex gap-1">
             <Button type="button" variant={showDay ? "ghost" : "secondary"} size="sm" onClick={() => setShowDay(false)}>투표 입력</Button>
             <Button type="button" variant={showDay ? "secondary" : "ghost"} size="sm" onClick={() => setShowDay(true)}>당일 출석</Button>
+            <AddGuestButton matchId={matchId} recentGuests={recentGuests} />
           </div>
         </div>
         {showDay && (
@@ -139,7 +141,8 @@ export function AttendanceEditor({ matchId, players, attendance, lateThreshold, 
               <div className="flex items-center gap-2">
                 <span className={cn("min-w-0 flex-1 truncate font-medium", !p.is_active && "text-muted-foreground")}>
                   {p.name}
-                  {!p.is_active && <span className="ml-1 text-xs">(비활성)</span>}
+                  {p.is_guest && <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] text-amber-800">용병</span>}
+                  {!p.is_active && !p.is_guest && <span className="ml-1 text-xs">(비활성)</span>}
                   {showDay && r.rsvp && (
                     <span className={cn("ml-1.5 text-[10px] font-semibold", r.rsvp === "yes" ? "text-primary" : "text-muted-foreground")}>
                       투표 {r.rsvp === "yes" ? "참석" : "불참"}

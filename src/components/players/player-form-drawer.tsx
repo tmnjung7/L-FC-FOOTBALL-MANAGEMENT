@@ -44,6 +44,7 @@ export function PlayerFormDrawer({ player, trigger }: Props) {
   const [jersey, setJersey] = useState(player?.jersey_number?.toString() ?? "");
   const [joinedAt, setJoinedAt] = useState(player?.joined_at ?? todayISO());
   const [active, setActive] = useState(player?.is_active ?? true);
+  const [guest, setGuest] = useState(player?.is_guest ?? false);
 
   function reset() {
     setName(player?.name ?? "");
@@ -52,6 +53,7 @@ export function PlayerFormDrawer({ player, trigger }: Props) {
     setJersey(player?.jersey_number?.toString() ?? "");
     setJoinedAt(player?.joined_at ?? todayISO());
     setActive(player?.is_active ?? true);
+    setGuest(player?.is_guest ?? false);
   }
 
   function onSubmit(e: FormEvent) {
@@ -63,6 +65,7 @@ export function PlayerFormDrawer({ player, trigger }: Props) {
       jersey_number: jersey.trim() === "" ? null : Number(jersey),
       is_active: active,
       joined_at: joinedAt,
+      is_guest: guest,
     };
     startTransition(async () => {
       const result = isEdit ? await updatePlayer(player.id, input) : await createPlayer(input);
@@ -130,6 +133,13 @@ export function PlayerFormDrawer({ player, trigger }: Props) {
             <div className="flex flex-col gap-2">
               <Label htmlFor="p-joined">가입일</Label>
               <Input id="p-joined" type="date" value={joinedAt} onChange={(e) => setJoinedAt(e.target.value)} />
+            </div>
+            <div className="flex items-center justify-between rounded-md border px-3 py-3">
+              <div>
+                <Label htmlFor="p-guest">용병(게스트)</Label>
+                <p className="text-muted-foreground mt-1 text-xs">통계 랭킹·표에서 제외되고 선수 목록의 &quot;용병&quot; 칸에 모입니다</p>
+              </div>
+              <Switch id="p-guest" checked={guest} onCheckedChange={setGuest} />
             </div>
             <div className="flex items-center justify-between rounded-md border px-3 py-3">
               <div>

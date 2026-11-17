@@ -55,6 +55,14 @@ export async function getMatchDetail(id: string): Promise<MatchDetail | null> {
   ]);
   const att = attendance ?? [];
   const attIds = new Set(att.map((a) => a.player_id));
-  const visible = (players ?? []).filter((p) => p.is_active || attIds.has(p.id));
+  // 정회원(활성)은 항상, 용병·비활성은 이 모임에 출석 행이 있을 때만
+  const visible = (players ?? []).filter((p) => (p.is_active && !p.is_guest) || attIds.has(p.id));
   return { match, players: visible, attendance: att };
+}
+
+/** 최근 용병 이름 (자동완성) */
+export async function getRecentGuests(limit = 8): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("players").select("name").eq("is_guest", true).order("created_at", { ascending: false }).limit(limit);
+  return (data ?? []).map((p) => p.name);
 }

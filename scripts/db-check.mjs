@@ -67,6 +67,7 @@ const checks = await q(`
 console.table(checks);
 if (checks.some((c) => Number(c.bad) > 0)) { console.error("정합성 불일치 있음"); failed = true; }
 
+console.log("== 0007 용병 컬럼:", (await q(`select count(*)::int as n from information_schema.columns where table_name='players' and column_name='is_guest'`))[0]);
 console.log("== RLS 동작 확인 (anon = 로그인 없는 팀원, authenticated+admin = 대표)");
 await db.exec(`set role anon;`);
 console.log("anon read players:", (await q(`select count(*)::int as n from players`))[0]);

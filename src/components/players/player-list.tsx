@@ -41,13 +41,14 @@ function PlayerRowItem({ p, s }: { p: PlayerRow; s?: PlayerSeasonStatsRow }) {
 
 /** 선수 목록. 활성 선수 먼저, 비활성 선수는 접힌 섹션 */
 export function PlayerList({ players, stats }: Props) {
-  const active = players.filter((p) => p.is_active);
-  const inactive = players.filter((p) => !p.is_active);
+  const guests = players.filter((p) => p.is_guest);
+  const active = players.filter((p) => p.is_active && !p.is_guest);
+  const inactive = players.filter((p) => !p.is_active && !p.is_guest);
 
   return (
     <div className="flex flex-col gap-4">
       <section className="bg-card overflow-hidden rounded-xl border shadow-sm">
-        <h2 className="text-muted-foreground border-b px-4 py-2 text-xs font-semibold">활동 선수 {active.length}명</h2>
+        <h2 className="text-muted-foreground border-b px-4 py-2 text-xs font-semibold">팀원 {active.length}명</h2>
         {active.length === 0 ? (
           <p className="text-muted-foreground px-4 py-6 text-center text-sm">등록된 선수가 없습니다.</p>
         ) : (
@@ -58,6 +59,20 @@ export function PlayerList({ players, stats }: Props) {
           </ul>
         )}
       </section>
+
+      {guests.length > 0 && (
+        <details className="bg-card group overflow-hidden rounded-xl border shadow-sm">
+          <summary className="text-muted-foreground flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-2 text-xs font-semibold select-none">
+            용병 {guests.length}명 <span className="font-normal">(통계 랭킹 제외)</span>
+            <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
+          </summary>
+          <ul className="divide-y border-t">
+            {guests.map((p) => (
+              <PlayerRowItem key={p.id} p={p} s={stats.get(p.id)} />
+            ))}
+          </ul>
+        </details>
+      )}
 
       {inactive.length > 0 && (
         <details className="bg-card group overflow-hidden rounded-xl border shadow-sm">
