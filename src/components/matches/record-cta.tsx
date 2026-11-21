@@ -3,6 +3,7 @@ import { Play, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NewGameButton } from "@/components/matches/new-game-button";
+import { FinishMatchButton } from "@/components/matches/finish-match-button";
 import type { GameFull } from "@/lib/queries/games";
 
 type Props = { matchId: string; games: GameFull[]; canScore: boolean; attendeeCount: number; status: "scheduled" | "done" | "cancelled"; labelA?: string; labelB?: string };
@@ -58,6 +59,8 @@ export function RecordCta({ matchId, games, canScore, attendeeCount, status, lab
               </Button>
               <NewGameButton matchId={matchId} hasPrevious size="lg" label="다음 쿼터" />
             </div>
+            <FinishMatchButton matchId={matchId} gameCount={games.length} className="h-12" />
+            <p className="text-muted-foreground text-center text-xs">마지막 쿼터까지 끝났으면 &lsquo;경기 종료&rsquo;를 눌러 완료 처리하세요.</p>
           </>
         )}
       </CardContent>

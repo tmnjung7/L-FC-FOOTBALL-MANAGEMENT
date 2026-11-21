@@ -9,6 +9,7 @@ import { EventList } from "@/components/matches/event-list";
 import { GameSettings } from "@/components/matches/game-settings";
 import { LineupEditor } from "@/components/matches/lineup-editor";
 import { NewGameButton } from "@/components/matches/new-game-button";
+import { FinishMatchButton } from "@/components/matches/finish-match-button";
 import { Scoreboard } from "@/components/matches/scoreboard";
 import { AutoRefresh } from "@/components/matches/auto-refresh";
 import { getViewer } from "@/lib/auth";
@@ -95,7 +96,10 @@ export default async function GamePage({ params }: Props) {
       </h3>
       <Scoreboard matchId={matchId} current={current} canScore={viewer.canScore} opponent={match.opponent} />
       {viewer.canScore && isLast && (
-        <NewGameButton matchId={matchId} hasPrevious size="lg" label={`다음 쿼터 (Q${current.game.game_number + 1}) 시작 — 편성 그대로 복사`} />
+        <div className="flex flex-col gap-2">
+          <NewGameButton matchId={matchId} hasPrevious size="lg" label={`다음 쿼터 (Q${current.game.game_number + 1}) 시작 — 편성 그대로 복사`} />
+          {match.status === "scheduled" && <FinishMatchButton matchId={matchId} gameCount={data.games.length} className="h-12" />}
+        </div>
       )}
       <section className="bg-card rounded-xl border px-4 py-2 shadow-sm">
         <h3 className="flex items-center gap-2 py-1 text-sm font-semibold">
