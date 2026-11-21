@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { monthRange, todayISO, daysBetween } from "@/lib/date";
+import { autoCompleteMatches } from "@/lib/queries/auto-complete";
 import type { MatchRow, MatchSummaryRow, PlayerSeasonStatsRow, RsvpAnswer, TeamSettingsRow } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -22,6 +23,7 @@ export type NextMatch = {
 /** 오늘 이후 가장 가까운 예정 모임 + 참석 응답 현황 */
 export async function getNextMatch(playerId: string | null): Promise<NextMatch | null> {
   const supabase = await createClient();
+  await autoCompleteMatches();
   const { data: match } = await supabase
     .from("matches")
     .select("*")
@@ -50,6 +52,7 @@ export async function getNextMatch(playerId: string | null): Promise<NextMatch |
 /** 최근 끝난 모임 3개 요약 */
 export async function getRecentResults(limit = 3): Promise<MatchSummaryRow[]> {
   const supabase = await createClient();
+  await autoCompleteMatches();
   const { data } = await supabase
     .from("v_match_summary")
     .select("*")

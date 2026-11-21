@@ -68,6 +68,22 @@ console.table(checks);
 if (checks.some((c) => Number(c.bad) > 0)) { console.error("정합성 불일치 있음"); failed = true; }
 
 console.log("== 0007 용병 컬럼:", (await q(`select count(*)::int as n from information_schema.columns where table_name='players' and column_name='is_guest'`))[0]);
+// 0008: 지난 예정 모임 자동 완료 (쿼터 있음 → done + 출전자 출석 채움 / 기록 없음 → 그대로)
+await db.exec(`insert into matches (match_date, status, opponent) values ('2020-01-05', 'scheduled', 'FC 과거'), ('2020-01-12', 'scheduled', 'FC 빈모임')`);
+const pastId = (await q(`select id from matches where opponent='FC 과거'`))[0].id;
+await db.exec(`insert into games (match_id, game_number) values ('${pastId}', 1)`);
+const pastGame = (await q(`select id from games where match_id='${pastId}'`))[0].id;
+const p1 = (await q(`select id from players where name='김민준'`))[0].id;
+await db.exec(`insert into game_players (game_id, player_id, team) values ('${pastGame}', '${p1}', 'A')`);
+await db.exec(`set role anon; select set_config('request.jwt.claims', '', false);`);
+const autoN = (await q(`select public.fn_auto_complete_matches() as n`))[0].n;
+await db.exec(`reset role;`);
+const autoRows = await q(`select opponent, status from matches where opponent in ('FC 과거','FC 빈모임') order by opponent`);
+const autoAtt = (await q(`select status from attendance where match_id='${pastId}' and player_id='${p1}'`))[0]?.status;
+const autoOk = Number(autoN) === 1 && autoRows.find((r) => r.opponent === 'FC 과거').status === 'done' && autoRows.find((r) => r.opponent === 'FC 빈모임').status === 'scheduled' && autoAtt === 'present';
+console.log("0008 auto complete:", autoN, autoRows, "attendance:", autoAtt, autoOk ? "✔" : "✘");
+if (!autoOk) failed = true;
+await db.exec(`delete from matches where opponent in ('FC 과거','FC 빈모임')`);
 console.log("== RLS 동작 확인 (anon = 로그인 없는 팀원, authenticated+admin = 대표)");
 await db.exec(`set role anon;`);
 console.log("anon read players:", (await q(`select count(*)::int as n from players`))[0]);

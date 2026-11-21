@@ -66,6 +66,14 @@ export const getMissingMigrations = cache(async (): Promise<MigrationStatus[]> =
         return error && /is_guest/i.test(error.message) ? error.message : null;
       },
     },
+    {
+      file: "0008_auto_complete.sql",
+      label: "지난 모임 자동 완료",
+      test: async () => {
+        const { error } = await supabase.rpc("fn_auto_complete_matches");
+        return error && /could not find|does not exist|404/i.test(error.message) ? error.message : null;
+      },
+    },
   ];
   const results = await Promise.all(
     checks.map(async (c) => {

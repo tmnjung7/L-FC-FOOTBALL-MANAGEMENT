@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { todayISO } from "@/lib/date";
+import { autoCompleteMatches } from "@/lib/queries/auto-complete";
 import type { AttendanceRow, MatchRow, MatchSummaryRow, PlayerRow } from "@/types/database";
 
 /** 모임 목록: 예정(오름차순) + 지난(내림차순) + 예정 모임의 참석 응답 수 */
 export async function getMatchList(): Promise<{ upcoming: MatchSummaryRow[]; past: MatchSummaryRow[]; rsvp: Map<string, number> }> {
   const supabase = await createClient();
   const today = todayISO();
+  await autoCompleteMatches(); // 지난 모임 자동 완료 후 읽기
   const { data } = await supabase.from("v_match_summary").select("*").order("match_date", { ascending: false });
   const all = data ?? [];
   const upcoming = all.filter((m) => m.status === "scheduled" && m.match_date >= today).sort((a, b) => a.match_date.localeCompare(b.match_date));
@@ -47,6 +49,7 @@ export type MatchDetail = {
 
 export async function getMatchDetail(id: string): Promise<MatchDetail | null> {
   const supabase = await createClient();
+  await autoCompleteMatches();
   const { data: match } = await supabase.from("matches").select("*").eq("id", id).maybeSingle();
   if (!match) return null;
   const [{ data: players }, { data: attendance }] = await Promise.all([

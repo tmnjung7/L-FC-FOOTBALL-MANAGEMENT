@@ -16,6 +16,7 @@
 ## 2. 핵심 기능 (우선순위 순)
 1. 선수 관리: 이름, 포지션 선호(GK/FIXO/ALA/PIVO/ANY), 활동 여부, **용병**(`players.is_guest`: 출석 탭·편성의 "+ 용병" 버튼으로 이름만 적어 추가, 같은 이름 재사용. 통계 랭킹·표·홈 랭킹·전술판·이름 선택에서 제외, 보고서에는 "(용병)" 표시)
 2. 경기(모임) 기록: 날짜·장소·참석자·지각자, 쿼터별 팀 편성, 쿼터별 스코어
+   - **모임 상태 자동 완료**: 날짜가 지난 "예정" 모임에 쿼터나 당일 출석 기록이 있으면 조회 시 자동으로 완료(done) 처리(`fn_auto_complete_matches`, `lib/queries/auto-complete.ts`). 출전했는데 출석이 비어 있으면 출석으로 채움. 기록이 전혀 없는 지난 모임은 "기록 없음"으로 표시(대표가 취소/완료 선택)
    - **경기 유형 2가지**: 자체전(A팀 vs B팀, 둘 다 우리 선수) / **상대팀 경기**(`matches.opponent` 이름만, A = 우리, B = 상대). **새 모임 기본값은 상대팀 경기**, 편성 B팀 칸·모임 배지에서 언제든 전환(`setMatchOpponent`).
      상대팀 경기는 편성이 "출전/휴식" 한 칸, 실점은 득점자 없이(`events.scorer_id` null) 기록, 우리 자책골은 scorer = 우리 선수 + is_own_goal
 3. 개인 기록: 쿼터별 득점·어시스트·출전, 모임별 평점(1~10, 0.5 단위), 누적 집계
@@ -82,6 +83,7 @@ futsal-manager/
 │  ├─ migrations/0005_opponent.sql     # 상대팀 경기: matches.opponent, events.scorer_id nullable(+자체전 검사 트리거), 뷰에 opponent·합계 골
 │  ├─ migrations/0006_game_timer.sql   # 공유 타이머: games.timer_running/timer_end_at/timer_remaining_ms
 │  ├─ migrations/0007_guest_players.sql # 용병: players.is_guest
+│  ├─ migrations/0008_auto_complete.sql # 지난 모임 자동 완료: fn_auto_complete_matches (목록·홈·상세·통계 조회 전 호출)
 │  ├─ seed.sql               # 가상 이름 15명, 모임 8회 × 9쿼터 (truncate 포함 — 운영 후 재실행 금지)
 │  └─ maintenance/cleanup_seed.sql  # 가상 데이터만 삭제 (실제 선수·대표가 만든 모임은 유지)
 ├─ scripts/

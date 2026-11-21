@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronRight, Clock, MapPin, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatTime, relativeDays } from "@/lib/date";
+import { formatDate, formatTime, relativeDays, todayISO } from "@/lib/date";
 import type { MatchSummaryRow } from "@/types/database";
 import { resultLabel } from "@/lib/match-labels";
 import { MatchDeleteButton } from "@/components/matches/match-delete-button";
@@ -14,8 +14,9 @@ const STATUS: Record<MatchSummaryRow["status"], { label: string; variant: "defau
 };
 
 export function MatchCard({ m, canDelete = false }: { m: MatchSummaryRow; canDelete?: boolean }) {
-  const isUpcoming = m.status === "scheduled";
-  const st = STATUS[m.status];
+  const isUpcoming = m.status === "scheduled" && m.match_date >= todayISO();
+  // 날짜가 지났는데 아직 예정이면 = 쿼터·출석 기록이 하나도 없는 모임 (기록이 생기면 자동 완료됨)
+  const st = m.status === "scheduled" && !isUpcoming ? { label: "기록 없음", variant: "muted" as const } : STATUS[m.status];
   return (
     <li className="flex items-center gap-1">
       <Link href={`/matches/${m.match_id}`} className="bg-card hover:bg-accent flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl border px-4 py-3 shadow-sm">

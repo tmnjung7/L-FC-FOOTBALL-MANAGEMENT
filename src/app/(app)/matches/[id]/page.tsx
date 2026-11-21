@@ -19,7 +19,7 @@ import { ReportImageCard } from "@/components/report/report-image-card";
 import { buildReport } from "@/lib/report/build";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth";
-import { formatDate, formatTime } from "@/lib/date";
+import { formatDate, formatTime, todayISO } from "@/lib/date";
 import { getTeamSettings } from "@/lib/queries/home";
 import { getMatchGames } from "@/lib/queries/games";
 import { getMatchDetail, getRecentGuests, getRecentOpponents, getRecentVenues } from "@/lib/queries/matches";
@@ -72,7 +72,9 @@ export default async function MatchDetailPage({ params, searchParams }: Props) {
       />
       <div className="flex flex-col gap-3 py-3">
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <Badge variant={STATUS_VARIANT[match.status]}>{STATUS_LABEL[match.status]}</Badge>
+          <Badge variant={match.status === "scheduled" && match.match_date < todayISO() ? "muted" : STATUS_VARIANT[match.status]}>
+            {match.status === "scheduled" && match.match_date < todayISO() ? "기록 없음" : STATUS_LABEL[match.status]}
+          </Badge>
           <Badge variant="outline">{match.format}</Badge>
           {viewer.canScore ? (
             <MatchTypeButton

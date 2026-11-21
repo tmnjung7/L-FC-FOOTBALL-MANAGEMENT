@@ -341,6 +341,7 @@ export type Database = {
       is_scorer: { Args: Record<string, never>; Returns: boolean };
       default_role_for_email: { Args: { p_email: string }; Returns: string | null };
       current_player_id: { Args: Record<string, never>; Returns: string | null };
+      fn_auto_complete_matches: { Args: Record<string, never>; Returns: number };
       fn_player_season_stats: {
         Args: { p_from?: string | null; p_to?: string | null };
         Returns: PlayerSeasonStatsRow[];

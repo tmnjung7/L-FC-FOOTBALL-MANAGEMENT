@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { autoCompleteMatches } from "@/lib/queries/auto-complete";
 import { todayISO, toISODate, parseISODate } from "@/lib/date";
 import type { PlayerSeasonStatsRow } from "@/types/database";
 
@@ -72,6 +73,7 @@ function monthLabel(ym: string) {
 /** 통계 탭 데이터 한 번에 */
 export async function getStats(period: Period): Promise<StatsData> {
   const supabase = await createClient();
+  await autoCompleteMatches(); // 지난 모임 자동 완료 (완료된 모임만 통계에 들어감)
   const [{ data: stats }, matchesQ, { data: guestRows }] = await Promise.all([
     supabase.rpc("fn_player_season_stats", { p_from: period.from, p_to: period.to }),
     (() => {

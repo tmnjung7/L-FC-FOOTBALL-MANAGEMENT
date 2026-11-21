@@ -11,6 +11,7 @@
 | `migrations/0005_opponent.sql` | 상대팀 경기 모드 (상대팀 이름, 득점자 없는 실점) |
 | `migrations/0006_game_timer.sql` | 쿼터 타이머를 DB 에 저장 (여러 휴대폰 동기화) |
 | `migrations/0007_guest_players.sql` | 용병 선수 (players.is_guest) |
+| `migrations/0008_auto_complete.sql` | 지난 모임 자동 완료 (`fn_auto_complete_matches`: 쿼터·출석 기록이 있으면 done, 출전자 출석 자동 채움) |
 | `seed.sql` | 가상 이름 선수 15명, 일요일 모임 8회 × 9쿼터, 득점·평점·출석·피드백·전술 더미 데이터 |
 
 마이그레이션은 **번호 순서대로 한 번씩만** 실행합니다. (0001 을 이미 실행했다면 0002 만 추가 실행)
